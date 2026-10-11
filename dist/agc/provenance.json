@@ -1,0 +1,33 @@
+{
+  "webAGC": {
+    "repository": "https://github.com/michaelfranzl/webAGC",
+    "commit": "0575ea7a1231e3948bae7d2c22a6ac146da0c38d"
+  },
+  "emulator": {
+    "repository": "https://github.com/michaelfranzl/virtualagc",
+    "commit": "ddc65e7bed41f1301921b934fcbaaee93db99dda",
+    "version": "2020-12-24 ddc65e7be",
+    "license": "GPL-2.0-or-later"
+  },
+  "programs": {
+    "repository": "https://github.com/virtualagc/virtualagc",
+    "commit": "92a74ef1c88aede2e4ba0a86c6585c9ea911226d",
+    "flight": "Luminary099 (LMY99 revision 001)",
+    "flightLicense": "Public domain",
+    "validationLicense": "GPL-2.0-or-later"
+  },
+  "assets": {
+    "yaAGC.wasm": {
+      "bytes": 132617,
+      "sha256": "a595f3ad3cc6833638b49879e2d41149a7327b1a10577828f50466d6c7747f14"
+    },
+    "Luminary099.bin": {
+      "bytes": 73728,
+      "sha256": "1f5326e038de5b741b2f27b01ec949dbd688cf1906994e997402587c8628f40e"
+    },
+    "Validation.bin": {
+      "bytes": 73728,
+      "sha256": "ff8a6baab6c10839da69f7b3a828e3981bc909570e36896e2eead311fd346545"
+    }
+  }
+}

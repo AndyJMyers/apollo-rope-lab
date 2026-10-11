@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+import {AgcCore,CYCLE_US,verifiedBytes} from './core.mjs';
+const $=id=>document.getElementById(id);
+let core=null,running=false,busy=false,program='',lastTime=0,manifest=null,romCache={},packets=[],generation=0;
+function status(text){$('agc-status').textContent=text;}
+function log(text){const p=document.createElement('p');p.textContent=text;$('agc-log').prepend(p);while($('agc-log').children.length>40)$('agc-log').lastChild.remove();}
+function controls(){for(const id of ['agc-boot','agc-lamp','agc-time','agc-validation','agc-reset','agc-step','agc-pause'])$(id).disabled=busy||(id!=='agc-boot'&&id!=='agc-validation'&&!core);$('agc-pause').textContent=running?'PAUSE CPU':'RESUME CPU';$('agc-step').disabled=busy||!core||running;document.querySelectorAll('[data-agc-key]').forEach(b=>b.disabled=!core||busy||!running);}
+async function assets(){manifest??=await fetch(new URL('./provenance.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Cannot load AGC provenance.');return r.json();});return manifest;}
+async function bytes(name){const m=await assets();romCache[name]??=await verifiedBytes(new URL('./'+name,import.meta.url),m.assets[name].sha256);return romCache[name];}
+async function boot(name='Luminary099.bin'){
+ busy=true;running=false;controls();status('Checking pinned assets and booting…');
+ try{const token=++generation;core=await AgcCore.create(await bytes('yaAGC.wasm'),{onOutput:(channel,value)=>{packets.unshift({channel,value});if(packets.length>16)packets.pop();},onDiagnostic:t=>log('Emulator: '+t.trim())});if(token!==generation)return;program=name;packets=[];core.loadRom(await bytes(name));core.step(100000);running=name==='Luminary099.bin';lastTime=performance.now();$('agc-program-name').textContent=name==='Luminary099.bin'?'LMY99 REVISION 001':'CPU VALIDATION';$('agc-version').textContent=core.version();status(running?'Original Apollo instructions running.':'Validation program ready.');log(name+' loaded; SHA-256 verified.');render();return core;}
+ catch(e){core=null;status('AGC could not start: '+e.message);log(e.message);throw e;}
+ finally{busy=false;controls();}
+}
+function render(){if(!core)return;const d=core.dsky;for(const [field,id] of [['prog','agc-prog'],['verb','agc-verb'],['noun','agc-noun'],['r1','agc-r1'],['r2','agc-r2'],['r3','agc-r3']])$(id).textContent=d.text(field);$('agc-verb').classList.toggle('flash-off',!!(d.lamps&32));$('agc-noun').classList.toggle('flash-off',!!(d.lamps&32));
+ const lamps={'agc-comp':d.lamps&2,'agc-uplink':d.lamps&4,'agc-keyrel':d.lamps&16,'agc-oprerr':d.lamps&64,'agc-restart':d.lamps&128,'agc-standby':d.lamps&256,'agc-proglamp':d.annunciators&256,'agc-noatt':d.annunciators&8};for(const [id,value] of Object.entries(lamps))$(id).classList.toggle('lit',!!value);
+ $('agc-cycles').textContent=core.cycles.toLocaleString();$('agc-elapsed').textContent=(core.cycles*CYCLE_US/1e6).toFixed(2)+' s';$('agc-packets').textContent=core.packetCount.toLocaleString();
+ const mem=core.erasable();$('agc-memory').textContent=Array.from({length:32},(_,i)=>{const labels={0:'A',1:'L',2:'Q',3:'EB',4:'FB',5:'Z',6:'BB',0o24:'TIME2',0o25:'TIME1',0o26:'TIME3',0o27:'TIME4',0o30:'TIME5',0o31:'TIME6'};return i.toString(8).padStart(4,'0')+'  '+mem[i].toString(8).padStart(6,'0')+'  '+(labels[i]??'');}).join('\n');
+ $('agc-io').textContent=packets.map(p=>'CH '+p.channel.toString(8).padStart(3,'0')+'  '+p.value.toString(8).padStart(5,'0')).join('\n')||'Awaiting channel writes…';
+}
+function cycle(){const now=performance.now();if(core&&running&&!busy&&!document.hidden){const elapsed=Math.max(0,Math.min(50,now-lastTime));try{core.step(Math.floor(elapsed*1000/CYCLE_US));render();}catch(e){running=false;status('Emulator stopped: '+e.message);controls();}}lastTime=now;}
+async function macro(keys){if(!core||program!=='Luminary099.bin')await boot();running=false;busy=true;controls();try{for(const key of keys){core.key(key);core.step(60000);}core.step(100000);render();running=true;lastTime=performance.now();status('Command executed by original Apollo software.');}catch(e){status(e.message);}finally{busy=false;controls();}}
+async function validation(){
+ try{await boot('Validation.bin');busy=true;controls();core.proceed(true);core.step(10000);core.proceed(false);log('Starting available upstream CPU tests; initial PRO prompt acknowledged.');
+  for(let i=0;i<100;i++){core.step(250000);render();const mode=core.dsky.text('prog');if(mode==='77'){status('PASS: upstream validation program reached completion code 77.');log('CPU regression tests completed. This suite has documented unimplemented placeholders; it is not exhaustive certification.');return;}if(mode!=='00'&&mode.trim()){status('Validation stopped at test '+mode+', subcode '+core.dsky.text('noun'));log('OPR ERR at test '+mode+'; review the validation source.');return;}await new Promise(resolve=>requestAnimationFrame(resolve));}
+  status('Validation timed out before completion.');
+ }catch(e){status('Validation failed: '+e.message);}finally{busy=false;running=false;controls();render();}
+}
+$('agc-boot').onclick=()=>boot().catch(()=>{});$('agc-validation').onclick=validation;$('agc-lamp').onclick=()=>macro(['VERB','3','5','ENTR']).then(()=>log('V35: lamp and display test.'));
+$('agc-time').onclick=()=>macro(['VERB','1','6','NOUN','6','5','ENTR']).then(()=>log('V16 N65: display the software time registers.'));
+$('agc-pause').onclick=()=>{running=!running;lastTime=performance.now();status(running?'Original instructions running.':'CPU paused.');controls();};$('agc-step').onclick=()=>{core.step(1000);render();status('Advanced 1,000 memory cycles (11.72 ms simulated).');};$('agc-reset').onclick=()=>boot(program).catch(()=>{});
+document.querySelectorAll('[data-agc-key]').forEach(b=>b.onclick=()=>{if(!core||busy||!running)return;try{if(b.dataset.agcKey==='PRO'){core.proceed(true);core.step(10000);core.proceed(false);}else core.key(b.dataset.agcKey);core.step(20000);render();}catch(e){status(e.message);}});
+document.addEventListener('keydown',e=>{if($('agc').hidden||!core||!running||busy||e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;const map={v:'VERB',n:'NOUN',Enter:'ENTR',Escape:'CLR',c:'CLR',k:'KEY REL',r:'RSET',p:'PRO','-':'−'};const key=map[e.key]??e.key;if(!/^[0-9+]$/.test(key)&&!Object.values(map).includes(key))return;const button=Array.from(document.querySelectorAll('[data-agc-key]')).find(b=>b.dataset.agcKey===key);if(button){e.preventDefault();button.click();}});
+controls();setInterval(cycle,20);
