@@ -36,6 +36,14 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ## Scope
 
+### Mission sound
+
+Both the Flight Deck and hardware experiment include **Enable sound** and **Radio check**. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. Audio starts only after a user gesture.
+
+Procedural Web Audio produces a throttle-linked engine rumble, short attitude-thruster bursts, radio squelch and a quiet room noise floor. Four dramatised roles—Eagle, Houston, Columbia and the back room—respond to startup, altitude crossings, periodic telemetry, low fuel, illustrative overload and surface contact. The orbiter participates in the dialogue; orbital dynamics are not simulated. These are training lines, not historical recordings or quotations. Speech uses browser-provided English voices, with captions when speech is unavailable. Voice quality and voice variety depend on the device. Engine/thruster sounds are an interpretive cabin soundscape, not a physical acoustic reconstruction.
+
+Pause, reset, mute, leaving the Flight Deck tab, hiding the document and leaving the page stop active sound and cancel queued speech. Contact silences the engine while allowing the final radio exchange. Radio queues are bounded at accelerated simulation speeds. No audio assets or external audio services are needed for the procedural effects; the browser supplies speech.
+
 ### Hardware loop
 
 [**Open the hardware experiment**](https://apollo-rope-lab.magicbell8.chatgpt.site/hardware.html).
@@ -53,6 +61,8 @@ The **Flight Deck teaching model** does not execute original AGC software. It mo
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
+
+`node tests/sound.test.js` checks telemetry-driven dialogue, duplicate suppression, all four speakers, audio graph controls, captions without audio support, and cancellation on pause/mute/reset/visibility changes. Listening and browser playback QA were unavailable in the build environment; automated checks cannot establish sound quality.
 
 Run `node tests/engine.test.js`, `node tests/agc.test.mjs` and `node tests/hardware.test.mjs`. The AGC test verifies pinned asset hashes, every flight-rope information word, emulator version, boot behaviour, original V35 and V16 N65 commands, DSKY decoding, input bounds and upstream CPU-test completion. The hardware test exercises real PIPA packets and V16 N21, fractional pulse cancellation, gravity exclusion, original FLATOUT entry words and drive enable, POUT/MOUT/ZOUT, bounded counter service, engine lag and surface contact.
 

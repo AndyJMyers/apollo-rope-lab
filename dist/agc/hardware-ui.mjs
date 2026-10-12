@@ -4,6 +4,7 @@ import {HardwareBridge,Vehicle,PIPA,signedWord,startFlatoutDiagnostic} from './h
 const $=id=>document.getElementById(id);
 let core,bridge,vehicle=new Vehicle(),mode='',running=false,busy=false,last=0,accumulator=0,samples=[],lastSample=-1,manifest;
 const canvas=$('hw-scene'),ctx=canvas.getContext('2d');
+const sound=new globalThis.RopeAudio.Scene($('sound-panel'));
 function status(text){$('hw-status').textContent=text;}
 function controls(){
  for(const id of ['hw-manual','hw-flatout'])$(id).disabled=busy;
@@ -16,7 +17,7 @@ function controls(){
  $('hw-play').textContent=running?'PAUSE EXPERIMENT':'RUN EXPERIMENT';
 }
 async function boot(selected){
- if(busy)return;busy=true;running=false;controls();status('Verifying rope and emulator assets…');
+ if(busy)return;sound.reset();busy=true;running=false;controls();status('Verifying rope and emulator assets…');
  try{
   manifest??=await fetch(new URL('./provenance.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Provenance unavailable.');return r.json();});
   const names=['yaAGC.wasm','Luminary099.bin'];
@@ -49,7 +50,7 @@ function tick(){
  if(vehicle.t-lastSample>=0.099||vehicle.status!=='flying'||vehicle.t>=120)record();
  if(vehicle.status!=='flying'||vehicle.t>=120){running=false;status(vehicle.status==='contact'?'Contact at '+Math.abs(vehicle.vy).toFixed(2)+' m/s vertically. Reset for another experiment.':'120-second experiment complete. Reset to repeat.');controls();}
 }
-function guardTick(){try{tick();}catch(e){running=false;status('Experiment paused: '+e.message);controls();}}
+function guardTick(){try{tick();}catch(e){running=false;sound.pause();status('Experiment paused: '+e.message);controls();}}
 function render(){
  $('hw-clock').textContent='T+ '+vehicle.t.toFixed(2)+' s';$('hw-height').textContent=vehicle.h.toFixed(1)+' m';$('hw-vy').textContent=vehicle.vy.toFixed(2)+' m/s';$('hw-vx').textContent=vehicle.vx.toFixed(2)+' m/s';$('hw-engine').textContent=(100*vehicle.throttle).toFixed(1)+'%';$('hw-fuel').textContent=vehicle.fuel.toFixed(1)+' kg';$('hw-control').textContent=mode==='flatout'?'AGC command':mode==='manual'?'Manual':'—';
  $('hw-motion').textContent=vehicle.status==='contact'?'CONTACT':running?'Hardware loop active.':core?'Paused.':'Ready.';
@@ -58,6 +59,7 @@ function render(){
   $('hw-drive').textContent='CH 014 BIT 4: '+(bridge.driveEnabled?'ON':'OFF')+'\nTHRUST remaining: '+signedWord(m[0o55])+'\nDrive pulses: '+bridge.drivePulses+'\nZOUT events: '+bridge.zeroOutputs+'\nModel position: '+(bridge.position*100).toFixed(1)+'%';
   $('hw-dsky').textContent=mode==='flatout'?'Bounded command test.\nDSKY not running.':'PROG '+core.dsky.text('prog')+'\nVERB '+core.dsky.text('verb')+'  NOUN '+core.dsky.text('noun')+'\n\n'+['r1','r2','r3'].map(x=>core.dsky.text(x)).join('\n');
  }
+ sound.observe({...vehicle,angle:+$('hw-tilt').value},{active:running&&!busy,hardware:true});
  draw();
 }
 function draw(){
@@ -81,7 +83,7 @@ function frame(now){
 }
 for(const name of ['manual','flatout'])$('hw-'+name).onclick=()=>boot(name);
 for(const [name,suffix] of [['throttle','%'],['tilt','°'],['lag',' s']])$('hw-'+name).oninput=()=>{$('hw-'+name+'-label').textContent=(name==='lag'?(+$('hw-lag').value/100).toFixed(2):$('hw-'+name).value)+suffix;render();};
-$('hw-play').onclick=()=>{running=!running;last=performance.now();accumulator=0;status(running?'Experiment running. Change tilt or lag to compare the response.':'Experiment paused.');controls();};
+$('hw-play').onclick=()=>{running=!running;if(!running)sound.pause();last=performance.now();accumulator=0;status(running?'Experiment running. Change tilt or lag to compare the response.':'Experiment paused.');controls();};
 $('hw-step').onclick=()=>{guardTick();render();controls();};$('hw-reset').onclick=()=>boot(mode);
 $('hw-export').onclick=()=>{
  if(lastSample!==vehicle.t)record();

@@ -1,7 +1,8 @@
 const $=id=>document.getElementById(id);let state=RopeEngine.initial(),running=false,last=0,history=[];
 const canvas=$('scene'),ctx=canvas.getContext('2d');
+const sound=new RopeAudio.Scene($('sound-panel'));
 function log(text){const p=document.createElement('p'),t=document.createElement('time');t.textContent=state.t.toFixed(1).padStart(5,'0');p.append(t,document.createTextNode(text));$('log').append(p);while($('log').children.length>70)$('log').firstChild.remove();$('log').scrollTop=$('log').scrollHeight;}
-function reset(){running=false;state=RopeEngine.initial();history=[];$('log').replaceChildren();log('Simulator initialised. Houston is making tea.');syncMode();render();}
+function reset(){sound.reset();running=false;state=RopeEngine.initial();history=[];$('log').replaceChildren();log('Simulator initialised. Houston is making tea.');syncMode();render();}
 function syncMode(){const manual=$('manual').classList.contains('selected');state.mode=manual?'manual':'auto';$('throttle').disabled=$('tilt').disabled=!manual;if(manual){state.throttle=+$('throttle').value/100;state.angle=+$('tilt').value;}}
 function fmt(x,d=0){return (x<0?'−':'+')+Math.abs(x).toFixed(d).padStart(d?5:5,'0');}
 function render(){
@@ -11,6 +12,7 @@ function render(){
  $('loadText').textContent=total+' / 100 units requested';$('loadBar').style.width=Math.min(100,total/145*100)+'%';$('loadBar').style.background=total>100?'var(--amber)':'var(--green)';$('shedText').textContent=shed?'EXPENDABLE JOBS DISCARDED':'ALL JOBS ACTIVE';
  $('message').textContent=state.status==='landed'?'CONTACT LIGHT. Safe landing.':state.status==='crashed'?'Impact. '+Math.abs(state.vy).toFixed(1)+' m/s vertical, '+Math.abs(state.vx).toFixed(1)+' m/s horizontal.':state.status==='ready'?'Ready for powered descent.':!running?'Descent paused.':total>100?'Overload experiment active.':'Powered descent in progress.';
  $('start').textContent=state.status==='landed'||state.status==='crashed'?'FLY AGAIN':running?'PAUSE DESCENT':state.status==='ready'?'BEGIN DESCENT':'RESUME DESCENT';
+ sound.observe(state,{active:running&&!$('flight').hidden,visible:!$('flight').hidden,protect:$('protect').checked});
  draw();
 }
 function draw(){
@@ -25,7 +27,7 @@ function draw(){
  if(lx<0||lx>w||ly<0){ctx.fillStyle='#e5ac61';ctx.fillText('VEHICLE OUTSIDE VIEW — use guidance or reset',w/2-140,25);}
 }
 function frame(now){const elapsed=last?Math.min(.1,(now-last)/1000):0;last=now;if(running){let remaining=elapsed*(+$('speed').value);while(remaining>0&&state.status==='flying'){const dt=Math.min(.02,remaining);RopeEngine.step(state,dt,{radar:+$('radar').value,protect:$('protect').checked,onAlarm:s=>log($('protect').checked?'1202: simulated queue exhausted. Restart; expendable work discarded.':'1202: simulated queue exhausted. Protection disabled; guidance command held.')});remaining-=dt;}if(!history.length||state.t-history[history.length-1].t>.4)history.push({x:state.x,h:state.h,t:state.t});if(state.status!=='flying'){running=false;log(state.status==='landed'?'Safe contact. Tea is now authorised.':'Landing limits exceeded. Review speed and pad offset, then reset.');}}render();requestAnimationFrame(frame);}
- $('start').onclick=()=>{if(['landed','crashed'].includes(state.status))reset();if(state.status==='ready'){state.status='flying';log('Powered descent begins. Automatic control is a modern teaching controller.');}running=!running;last=0;render();};$('reset').onclick=reset;
+ $('start').onclick=()=>{if(['landed','crashed'].includes(state.status))reset();if(state.status==='ready'){state.status='flying';log('Powered descent begins. Automatic control is a modern teaching controller.');}running=!running;if(!running)sound.pause();last=0;render();};$('reset').onclick=reset;
  for(const mode of ['auto','manual'])$(mode).onclick=()=>{const old=state.mode;for(const m of ['auto','manual'])$(m).classList.toggle('selected',m===mode);syncMode();if(old!==state.mode)log(state.mode==='manual'?'Manual control. Your right foot is not a guidance algorithm.':'Automatic guidance engaged.');render();};
  $('throttle').oninput=()=>{$('manualThrottle').textContent=$('throttle').value+'%';syncMode();};$('tilt').oninput=()=>{$('manualTilt').textContent=$('tilt').value+'°';syncMode();};$('radar').oninput=()=>{$('radarOut').textContent=$('radar').value+' units';render();};$('protect').onchange=()=>{log($('protect').checked?'Restart protection enabled.':'Restart protection disabled. Reset for a controlled comparison.');render();};$('overload').onclick=()=>{$('radar').value=25;$('radarOut').textContent='25 units';log('Injected 25 illustrative interface workload units.');render();};
- document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));for(const id of ['flight','agc','inside','evidence'])$(id).hidden=id!==b.dataset.tab;render();});window.addEventListener('resize',draw);reset();requestAnimationFrame(frame);
+ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{if(b.dataset.tab!=='flight')sound.pause();document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));for(const id of ['flight','agc','inside','evidence'])$(id).hidden=id!==b.dataset.tab;render();});window.addEventListener('resize',draw);reset();requestAnimationFrame(frame);
