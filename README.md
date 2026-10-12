@@ -37,8 +37,8 @@ the actual decoded display. A small pass/stop cue accompanies modern CPU
 validation and execution errors; these cues are app feedback, not historical
 AGC warning tones. There is no sound for individual instructions, memory
 changes or flashing annunciators. Pause, reset, leaving the panel and hiding
-the document stop active sound. Enabling a soundstage mutes the other one to
-prevent overlapping speech. Effects, ambience, spoken comms and voice choice
+the document stop active sound. Activating a soundstage silences the other one to
+prevent overlapping speech, while preserving the enabled preference. Effects, ambience, spoken comms and voice choice
 have independent controls. Browser voices retain the existing quality limits.
 
 The computer bench remains separate from the landing game. The new hardware experiment connects a simplified vehicle to real accelerometer counters and tests an original throttle command; it is not a validated historical descent reconstruction. Browser clocks approximate real-time execution and pause while the document is hidden. No browser rendering QA was available in the build environment.
@@ -51,7 +51,7 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ### Mission sound
 
-The Flight Deck, Original AGC bench and hardware experiment include **Enable sound** and a radio/loop check. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. Audio starts only after a user gesture.
+Sound defaults to enabled in the Flight Deck, Original AGC bench and hardware experiment. **Mute sound** and the radio/loop check remain available. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. The enabled/muted preference, volume levels, spoken-comms setting and voice choice are saved locally between runs and visits. Flight and bench volume profiles remain separate. Browsers may require a click or keypress before playback; the first interaction automatically activates sound. Reset and tab changes stop current playback without changing the saved preference. When browser storage is blocked, settings still work for the current visit.
 
 Procedural Web Audio produces a throttle-linked engine rumble, short attitude-thruster bursts, radio squelch and a quiet room noise floor. Four dramatised roles—Eagle, Houston, Columbia and the back room—respond to startup, altitude crossings, periodic telemetry, low fuel, illustrative overload and surface contact. The orbiter participates in the dialogue; orbital dynamics are not simulated. Live lines are adapted from the terse operational style of the Apollo 11 landing transcript, with no casual chatter during descent. A safe Flight Deck landing plays Neil Armstrong’s original NASA landing announcement; other lines remain synthesised. See [audio sources](dist/audio/README.md). Speech uses browser-provided English voices, with captions when speech is unavailable. Automatic selection uses recognised male voices at natural pitch; an installed male voice can also be selected explicitly. Ambiguous defaults use captions. Voice quality and voice variety depend on the device. Engine/thruster sounds are an interpretive cabin soundscape, not a physical acoustic reconstruction.
 
