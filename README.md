@@ -1,6 +1,6 @@
 # Apollo Rope Lab
 
-Second checkpoint for Andy J Myers. A playable teaching model and a separate original AGC workbench. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
+Hardware coupling checkpoint for Andy J Myers. A playable teaching model, an original AGC workbench and a sensor/engine experiment. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
 
 ## Core-rope construction
 
@@ -28,7 +28,7 @@ Select **Original AGC**, then **Boot Apollo 11**. This runs the preserved LMY99 
 
 **Run CPU validation** temporarily loads a separate modern regression program. It must reach PROG 77; some tests in that upstream suite are placeholders, so completion is not exhaustive CPU certification. Boot Apollo 11 again afterwards.
 
-The original computer is not yet connected to the landing game's physics, IMU or radar. It is an operational computer bench, not a validated historical descent reconstruction. Browser clocks approximate real-time execution and pause while the document is hidden. No browser rendering QA was available in the build environment.
+The computer bench remains separate from the landing game. The new hardware experiment connects a simplified vehicle to real accelerometer counters and tests an original throttle command; it is not a validated historical descent reconstruction. Browser clocks approximate real-time execution and pause while the document is hidden. No browser rendering QA was available in the build environment.
 
 `dist/agc/provenance.json` pins emulator/program source commits, SHA-256 hashes and byte sizes. The emulator's exported version string agrees with its documented source revision. All 36,864 information words in the flight binary agree with the separately proofed octal listing. The native build comparison checks host integration against the same source; it is not an independent CPU implementation.
 
@@ -36,13 +36,25 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ## Scope
 
+### Hardware loop
+
+[**Open the hardware experiment**](https://apollo-rope-lab.magicbell8.chatgpt.site/hardware.html).
+
+Choose **Manual / Live AGC** to boot the unchanged flight program and its V16 N21 accelerometer display. Start in freefall, increase thrust, then change tilt: genuine unprogrammed counter packets carry thrust-driven velocity impulses into PIPAX/PIPAY/PIPAZ. Gravity does not generate accelerometer pulses. Fractional pulses accumulate at 0.0585 m/s per pulse.
+
+Choose **Original FLATOUT** to execute a bounded entry test of the unchanged throttle routine. It loads 4,096 into THRUST and enables channel 014 bit 4. The external drive clock supplies 3,200 DINC pulses/s; the original core produces POUT/MOUT/ZOUT output packets, which drive a simplified engine actuator. After issuing the command, flight-program execution stops and only hardware counters are serviced. Entry registers are seeded by a diagnostic harness. This is an original actuator-command test, not autonomous guidance or a flight startup procedure.
+
+Pause, step 0.02 seconds, reset, vary engine lag and download telemetry CSV. The default 0.20 s lag derives from the flight-code constant; the first-order response and mapping of 4,096 pulses to full model travel are demonstration choices. The fixed axes, initial state and vehicle parameters are simplified. Radar, attitude inputs, mission alignment and navigation pad loads remain outstanding. See [hardware notes](dist/agc/hardware-notes.md) for protocols, sources, calibration and timing limits.
+
+### Flight Deck
+
 The **Flight Deck teaching model** does not execute original AGC software. It models two-dimensional near-surface lunar descent with a modern proportional guidance controller, constant lunar gravity, fuel-dependent mass and a throttled/tilted engine. It has an illustrative workload/restart model, not a cycle-accurate Apollo Executive. P63/P64/P66 display labels are illustrative.
 
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
 
-Run `node tests/engine.test.js` and `node tests/agc.test.mjs`. The latter verifies pinned asset hashes, every flight-rope information word, emulator version, boot behaviour, original V35 and V16 N65 commands, DSKY decoding, input bounds and upstream CPU-test completion.
+Run `node tests/engine.test.js`, `node tests/agc.test.mjs` and `node tests/hardware.test.mjs`. The AGC test verifies pinned asset hashes, every flight-rope information word, emulator version, boot behaviour, original V35 and V16 N65 commands, DSKY decoding, input bounds and upstream CPU-test completion. The hardware test exercises real PIPA packets and V16 N21, fractional pulse cancellation, gravity exclusion, original FLATOUT entry words and drive enable, POUT/MOUT/ZOUT, bounded counter service, engine lag and surface contact.
 
 The optional `tests/native_agc_oracle.c` builds against the corresponding source to compare all 2,048 erasable words after a deterministic boot/lamp-test sequence; zero differences were observed against WebAssembly. Browser QA remains separately required before compatibility claims.
 
@@ -50,8 +62,8 @@ The optional `tests/native_agc_oracle.c` builds against the corresponding source
 
 1. Expand CPU coverage beyond the partial upstream validation suite and add historical self-test scenarios.
 2. Independently verify flight-bank checksums against archival engineering drawings and identify the exact assembler toolchain for reproducible rebuilding.
-3. Establish DSKY/sensor initialisation procedures and mission-specific pad loads before flight coupling.
-4. Couple inertial/radar inputs, coordinate frames, engine lag and spacecraft dynamics. Establish nominal behaviour and compare against documented simulation/flight data.
+3. Establish mission-specific navigation state, pad loads, sensor alignment and the flight startup procedure; the current harness is only a bounded hardware test.
+4. Extend the working PIPA/throttle bridge with attitude and radar inputs, verify the actual engine transfer function, and engage descent guidance. Establish nominal behaviour and compare against documented simulation/flight data.
 5. Recreate resource exhaustion and separately investigate throttle stability. Record uncertainty and parameter sensitivity.
 6. Add accessible DSKY input, procedures, mission replay and game challenges; preserve clear distinctions between historical and simplified modes.
 7. Design touch controls and portrait/landscape layouts before an Android wrapper; package offline assets and lifecycle handling.
