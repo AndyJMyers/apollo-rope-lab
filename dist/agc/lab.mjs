@@ -39,3 +39,11 @@ document.addEventListener('keydown',e=>{if($('agc').hidden||!core||!running||bus
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab!=='agc')benchSound.pause();soundActive();}));
 document.addEventListener('visibilitychange',soundActive);
 controls();setInterval(cycle,20);
+// Read-only snapshot for Inside the Box; the bench retains ownership of its CPU.
+export function inspectBench(){
+ if(!core||busy)return null;
+ const m=core.erasable(),pc=m[5]&0o7777;
+ let bank=pc>=0o6000?3:pc>=0o4000?2:(m[4]>>>10)&0o37;
+ if(pc>=0o2000&&pc<0o4000&&(bank&0o30)===0o30&&(core.dsky.channels[7]&0o100))bank+=8;
+ return {program,running,cycles:core.cycles,pc,bank,rom:romCache[program],a:m[0],thrust:m[0o55],channel14:core.dsky.channels[0o14]||0};
+}

@@ -45,11 +45,11 @@ export class HardwareBridge {
 // Register seeding is a diagnostic harness, not the flight startup procedure.
 // Stop immediately after the original WOR CHAN14. Thereafter service counters
 // only: navigation, Executive and the rest of the throttle routine do not run.
-export function startFlatoutDiagnostic(core,bridge){
+export function startFlatoutDiagnostic(core,bridge,{onCycle}={}){
  core.exports.cpu_reset();core.step(1); // consume the emulator's reset/GOJAM
  const m=core.erasable();m[3]=7<<8;m[4]=0o31<<10;m[6]=(0o31<<10)|7;m[5]=0o2370;m[2]=0;
  bridge.driveEnabled=false;bridge.position=0;
- for(let i=0;i<100;i++){core.step(1);if(bridge.driveEnabled){if(m[THRUST_COUNTER]!==4096)throw new Error('Unexpected FLATOUT demand.');return i+1;}}
+ for(let i=0;i<100;i++){onCycle?.('before',core);core.step(1);onCycle?.('after',core);if(bridge.driveEnabled){if(m[THRUST_COUNTER]!==4096)throw new Error('Unexpected FLATOUT demand.');return i+1;}}
  throw new Error('Original FLATOUT did not enable thrust drive.');
 }
 export class Vehicle {

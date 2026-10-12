@@ -49,6 +49,30 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ## Scope
 
+### Follow a word through the rope
+
+**03 / Inside the Box** now includes a verified rope-word explorer. The tab
+records the original FLATOUT command path in an isolated diagnostic core:
+15 instructions, 27 memory cycles, ending with THRUST=4096 and channel 014
+bit 4 enabled. Select the constant-load, thrust-store or output-enable
+milestone, inspect all 15 information bits, animate the schematic read,
+step through the instructions or replay the recorded execution slowly.
+Before/after register and channel values come from the actual emulator.
+
+The wiring glyphs show the through/bypass principle, not Apollo's physical
+strand layout, core allocation, selection circuitry or parity wiring.
+The trace uses the existing bounded FLATOUT entry harness; it is not a
+mission startup or autonomous descent. Replay duration is for inspection,
+not the computer clock. Fixed-bank indexing accounts for the binary's
+2,3,0,1,4..35 file order.
+
+**Peek at live AGC** takes a read-only snapshot from the existing computer
+bench, preserving its CPU and navigation state. It shows the fixed word at
+Z without inferring pending-instruction, EXTEND or interrupt context.
+Erasable execution is identified as such, and the separate validation ROM
+is not displayed as flight software. Reset trace returns to the worked
+example. The existing explanatory articles remain below the explorer.
+
 ### Mission sound
 
 Sound defaults to enabled in the Flight Deck, Original AGC bench and hardware experiment. **Mute sound** and the radio/loop check remain available. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. The enabled/muted preference, volume levels, spoken-comms setting and voice choice are saved locally between runs and visits. Flight and bench volume profiles remain separate. Browsers may require a click or keypress before playback; the first interaction automatically activates sound. Reset and tab changes stop current playback without changing the saved preference. When browser storage is blocked, settings still work for the current visit.
@@ -74,6 +98,12 @@ The **Flight Deck teaching model** does not execute original AGC software. It mo
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Use W/S to increase/decrease throttle and A/D to tilt left/right, or use the sliders. A key press takes manual control, preserving the current automatic command when already flying. Held keys adjust smoothly in wall time, independent of the simulation speed multiplier. Editing text and selecting a voice do not trigger flight shortcuts. The hardware bench supports the same keys, but FLATOUT retains throttle ownership. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
+
+`node tests/rope-trace.test.mjs` checks bank indexing, bit order, the selected
+machine words, all 15 actual instruction transitions, cycle count and
+observed accumulator/thrust/output changes. `node tests/rope-ui.test.mjs`
+checks load, navigation, replay, bit inspection and the non-mutating live
+peek using the real core with DOM stubs. Browser visual QA remains separate.
 
 `node tests/agc-bench-ui.test.mjs` exercises the unchanged core and rope with
 DOM stubs: accepted/disabled keys, boot and procedure comms, actual V35/V16 N65
