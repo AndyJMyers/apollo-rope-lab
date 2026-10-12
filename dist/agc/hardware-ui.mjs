@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id);
 let core,bridge,vehicle=new Vehicle(),mode='',running=false,busy=false,last=0,accumulator=0,samples=[],lastSample=-1,manifest;
 const canvas=$('hw-scene'),ctx=canvas.getContext('2d');
 const sound=new globalThis.RopeAudio.Scene($('sound-panel'));
+const flightKeys=globalThis.RopeKeys.attach({throttle:$('hw-throttle'),tilt:$('hw-tilt'),available:()=>!!core&&!busy&&!document.hidden&&vehicle.status==='flying'&&vehicle.t<120,onChange:axis=>$('hw-'+axis).oninput()});
 function status(text){$('hw-status').textContent=text;}
 function controls(){
  for(const id of ['hw-manual','hw-flatout'])$(id).disabled=busy;
@@ -17,7 +18,7 @@ function controls(){
  $('hw-play').textContent=running?'PAUSE EXPERIMENT':'RUN EXPERIMENT';
 }
 async function boot(selected){
- if(busy)return;sound.reset();busy=true;running=false;controls();status('Verifying rope and emulator assets…');
+ if(busy)return;flightKeys.clear();sound.reset();busy=true;running=false;controls();status('Verifying rope and emulator assets…');
  try{
   manifest??=await fetch(new URL('./provenance.json',import.meta.url)).then(r=>{if(!r.ok)throw new Error('Provenance unavailable.');return r.json();});
   const names=['yaAGC.wasm','Luminary099.bin'];
@@ -78,6 +79,7 @@ function draw(){
  ctx.fillStyle='#b7d56d';ctx.fillText('DOWNRANGE '+vehicle.x.toFixed(1)+' m · vehicle centred in view',18,h-10);
 }
 function frame(now){
+ flightKeys.tick(last?Math.max(0,(now-last)/1000):0);
  if(running&&!busy&&!document.hidden){accumulator+=Math.min(0.05,Math.max(0,(now-last)/1000));while(accumulator>=0.02&&running){guardTick();accumulator-=0.02;}render();}
  last=now;requestAnimationFrame(frame);
 }

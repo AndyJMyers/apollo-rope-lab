@@ -1,0 +1,13 @@
+{
+  "source_url": "https://nssdc.gsfc.nasa.gov/planetary/lunar/a11landing.aiff",
+  "source_sha256": "04732da62b5404a3402ad6bf7dc714f12540054df7495dd4369c733f240e4a0d",
+  "source_bytes": 79926,
+  "source_duration_s": 3.588946,
+  "output_sha256": "b8a347c1fe843c912fa5830bc0e4dc7ffa114c551784d38b1bf91bb165b2df04",
+  "output_bytes": 44109,
+  "transform": "ffmpeg -i source.aiff -ar 24000 -ac 1 -af volume=-1.7dB -codec:a libmp3lame -b:a 96k eagle-landed.mp3",
+  "speaker": "Neil Armstrong",
+  "mission": "Apollo 11",
+  "historical_time": "102:45:58",
+  "trigger": "Flight Deck safe landing only"
+}

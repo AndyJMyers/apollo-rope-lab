@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const {attach}=require('../dist/keyboard.js');
+const events={},winEvents={};globalThis.addEventListener=(name,fn)=>winEvents[name]=fn;
+const doc={hidden:false,addEventListener:(name,fn)=>events[name]=fn};
+const throttle={min:'0',max:'100',value:'50',disabled:true},tilt={min:'-25',max:'25',value:'0',disabled:true};
+let active=true,changes=0,takeovers=0;
+const takeOver=()=>{if(throttle.disabled){takeovers++;throttle.disabled=tilt.disabled=false;}};takeOver.canTakeOver=true;
+const keys=attach({throttle,tilt,available:()=>active,beforeChange:takeOver,onChange:()=>changes++},doc);
+const key=(type,k,target={tagName:'BUTTON'},repeat=false)=>{let prevented=false;events[type]({key:k,target,repeat,preventDefault:()=>prevented=true});return prevented;};
+assert(key('keydown','W'));assert.equal(throttle.value,'51');assert.equal(takeovers,1);key('keydown','w',{},true);assert.equal(throttle.value,'51');keys.tick(.1);assert.equal(throttle.value,'53');key('keyup','w');keys.tick(.1);assert.equal(throttle.value,'53');
+key('keydown','a');assert.equal(tilt.value,'-1');for(let i=0;i<10;i++)keys.tick(.1);assert.equal(tilt.value,'-16');key('keyup','a');key('keydown','d');assert.equal(tilt.value,'-15');keys.clear();
+throttle.value='100';key('keydown','w');keys.tick(.1);assert.equal(throttle.value,'100');keys.clear();tilt.value='-25';key('keydown','a');assert.equal(tilt.value,'-25');keys.clear();
+assert.equal(key('keydown','s',{tagName:'INPUT',type:'text'}),false);assert.equal(key('keydown','d',{tagName:'SELECT'}),false);assert.equal(key('keydown','d',{isContentEditable:true}),false);
+key('keydown','s');doc.hidden=true;events.visibilitychange();doc.hidden=false;const stopped=throttle.value;keys.tick(.1);assert.equal(throttle.value,stopped);active=false;assert.equal(key('keydown','w'),false);
+active=true;const flatEvents={},flatDoc={addEventListener:(n,f)=>flatEvents[n]=f};throttle.disabled=true;tilt.disabled=false;
+attach({throttle,tilt,available:()=>true},flatDoc);let prevented=false;flatEvents.keydown({key:'w',target:{},preventDefault:()=>prevented=true});assert.equal(prevented,false,'Original FLATOUT keeps throttle ownership');
+flatEvents.keydown({key:'d',target:{},preventDefault:()=>prevented=true});assert(prevented);assert(changes>0);
+console.log('PASS: W/S throttle, A/D tilt, held-key rate, no OS-repeat dependence, clamping, manual takeover, editable-focus protection, visibility cleanup and FLATOUT throttle ownership.');
