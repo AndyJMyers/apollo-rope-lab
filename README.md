@@ -2,6 +2,14 @@
 
 Second checkpoint for Andy J Myers. A playable teaching model and a separate original AGC workbench. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
 
+## Core-rope construction
+
+![Looping animation: sense wires thread through or bypass a magnetic core to encode 1011, followed by a set/reset read cycle.](docs/animations/core-rope.gif)
+
+**Through the core = 1; bypassing it = 0.** This enlarged four-wire cutaway illustrates the principle. Actual Apollo cores served many words; selection, inhibit wiring, strand switching and sense amplifiers are omitted. [Technical reference](https://github.com/shirriff/rope-simulator#how-core-rope-works).
+
+The animation repeats automatically. Regenerate it with `python3 tools/render_core_rope.py` (requires Pillow).
+
 ## Run locally
 
 Serve `dist/` over HTTP (required for ES modules and WebAssembly): `python3 -m http.server 8000 --directory dist`. Open http://localhost:8000 .
