@@ -7,7 +7,7 @@ const originalQuery=document.querySelectorAll;
 document.querySelectorAll=selector=>['[data-rope-step]','[data-rope-bit]'].includes(selector)?[]:originalQuery(selector);
 $('rope-wires').classList.add=()=>{};$('rope-wires').classList.remove=()=>{};
 document.hidden=false;$('inside').hidden=false;
-globalThis.window={addEventListener(){}};$('rope-bit-pace').value='100';$('rope-tone-volume').value='35';$('rope-sonify-replay').checked=false;
+const wordStorage=new Map();globalThis.localStorage={getItem:k=>wordStorage.get(k)||null,setItem:(k,v)=>wordStorage.set(k,v)};globalThis.window={addEventListener(){}};$('rope-bit-pace').value='100';$('rope-tone-volume').value='35';$('rope-sonify-replay').checked=false;
 await import('../dist/agc/rope-ui.mjs');
 await $('rope-load').onclick();assert.match($('rope-status').textContent,/15 instructions in 27 memory cycles/);assert.equal($('rope-instruction').textContent,'CAF BIT13');assert.equal($('rope-octal').textContent,'34737');assert.match($('rope-wires').innerHTML,/Bit 15/);
 $('rope-preset').value='11';$('rope-preset').onchange();assert.equal($('rope-instruction').textContent,'TS THRUST');assert.match($('rope-effect').textContent,/4096 pulses/);
@@ -39,3 +39,16 @@ $('rope-wires').onclick({target:firstBit});const lastBit={closest:()=>({dataset:
 $('rope-restore').onclick();assert.equal($('rope-octal').textContent,originalWord);
 $('rope-wires').onclick({target:firstBit});await $('rope-load').onclick();assert.equal($('rope-octal').textContent,originalWord);assert.equal($('rope-play').textContent,'REPLAY TRACE');
 console.log('PASS: MSB/LSB click toggles, keyboard reversal, edited-word marking, restore/reset and unchanged live CPU.');
+
+// Create entirely new musical words and arrange a two-note melody.
+$('word-new').onclick();assert.equal($('rope-octal').textContent,'00000');$('word-name').value='Bass <test>';$('word-name').oninput();$('rope-wires').onclick({target:firstBit});assert.equal($('rope-octal').textContent,'40000');$('word-save').onclick();assert.match($('wordbook-list').innerHTML,/Bass &lt;test&gt;/);assert.equal($('word-save').textContent,'UPDATE WORD');
+$('word-new').onclick();$('word-name').value='Top';$('word-name').oninput();$('word-save').onclick();assert.match($('wordbook-status').textContent,/2 saved words/);
+const card=(action,id)=>({target:{closest:()=>({dataset:{wordAction:action,wordId:id}})}});
+$('wordbook-list').onclick(card('left','w2'));assert($('wordbook-list').innerHTML.indexOf('Top')<$('wordbook-list').innerHTML.indexOf('Bass'));
+$('wordbook-list').onclick(card('duplicate','w1'));assert.match($('wordbook-status').textContent,/3 saved words/);$('wordbook-list').onclick(card('remove','w3'));assert.match($('wordbook-status').textContent,/2 saved words/);
+globalThis.RopeAudio.isEnabled=()=>true;$('word-mode').value='notes';$('word-mode').onchange();const tonesBefore=toneContext.nodes.length;await $('word-play').onclick();assert.equal($('word-play').textContent,'STOP MELODY');assert.equal(toneContext.nodes.length,tonesBefore+1,'Word-note mode schedules one note per word');$('word-play').onclick();assert.equal($('word-play').textContent,'PLAY MELODY');
+console.log('PASS: new musical words, named saving, HTML-safe titles, order/copy/remove and one-note melody playback/stop.');
+
+$('wordbook-list').onclick(card('select','w1'));$('word-name').value='Returning draft';$('word-name').oninput();$('rope-wires').onclick({target:firstBit});const returningBits=$('rope-octal').textContent;
+await import('../dist/agc/rope-ui.mjs?reload-wordbook=1');assert.match($('wordbook-list').innerHTML,/Bass &lt;test&gt;/);assert.equal($('rope-octal').textContent,returningBits);assert.equal($('word-name').value,'Returning draft');
+console.log('PASS: saved melody and unsaved working bits restore on a fresh explorer instance.');

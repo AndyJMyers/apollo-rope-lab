@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import {wordBits} from './rope-trace.mjs';
+export function wordNote(word){
+ wordBits(word);const step=Math.floor(word*15/32768),scale=[0,2,4,7,9],midi=48+12*Math.floor(step/5)+scale[step%5];
+ return {step,midi,frequency:440*Math.pow(2,(midi-69)/12),name:['C','D','E','G','A'][step%5]+(3+Math.floor(step/5))};
+}
 export function scoreWord(word,bitMs=100){
  if(!Number.isFinite(bitMs)||bitMs<50||bitMs>200)throw new Error('Bit pace must be 50–200 ms.');
  return wordBits(word).map((bit,i)=>({bit,index:i,offset:i*bitMs/1000,duration:bitMs/1000*0.72,frequency:bit?660:220,type:bit?'triangle':'sine',weight:bit?0.12:0.06,group:i%3===0}));
@@ -21,6 +25,11 @@ export class WordSonifier {
  }
  note(frequency,type,weight,time,duration){
   const oscillator=this.context.createOscillator(),gain=this.context.createGain();oscillator.type=type;oscillator.frequency.value=frequency;gain.gain.setValueAtTime(0,time);gain.gain.linearRampToValueAtTime(weight,time+0.003);gain.gain.exponentialRampToValueAtTime(0.0001,time+duration);oscillator.connect(gain);gain.connect(this.master);this.sources.add(oscillator);oscillator.onended=()=>{this.sources.delete(oscillator);oscillator.disconnect();gain.disconnect();};oscillator.start(time);oscillator.stop(time+duration+0.005);
+ }
+ async playNote(word,durationMs=500){
+  const pitch=wordNote(word);if(!Number.isFinite(durationMs)||durationMs<100||durationMs>2000)throw new Error('Invalid note duration.');this.stop();if(!this.enabled())return false;const token=this.token;this.context??=this.contextFactory();if(!this.master){this.master=this.context.createGain();this.master.connect(this.context.destination);}this.master.gain.value=this.volume;await this.context.resume();if(token!==this.token||!this.enabled())return false;
+  const start=this.context.currentTime+0.025;this.note(pitch.frequency,'triangle',.15,start,durationMs/1000*.85);
+  const frame=()=>{if(token!==this.token)return;if(!this.enabled()){this.stop();return;}if(this.context.currentTime>=start+durationMs/1000){this.animation=null;this.onEnd();return;}this.animation=requestAnimationFrame(frame);};this.animation=requestAnimationFrame(frame);return true;
  }
  setVolume(value){this.volume=Math.max(0,Math.min(1,value));if(this.master)this.master.gain.setTargetAtTime(this.volume,this.context.currentTime,0.02);}
  stop(){this.token++;if(this.animation!==null)cancelAnimationFrame(this.animation);this.animation=null;for(const oscillator of this.sources){oscillator.stop();oscillator.disconnect();}this.sources.clear();this.onEnd();}

@@ -2,14 +2,19 @@
 import {AgcCore,CYCLE_US,verifiedBytes} from './core.mjs';
 import {fixedWord,wordBits,recordFlatout} from './rope-trace.mjs';
 import {inspectBench} from './lab.mjs';
-import {WordSonifier} from './sonify.mjs';
+import {WordSonifier,wordNote} from './sonify.mjs';
+import {Wordbook} from './wordbook.mjs';
 const $=id=>document.getElementById(id),oct=(x,n=5)=>x.toString(8).padStart(n,'0');
 let trace=null,index=0,selectedBit=14,live=null,loading=false,playing=false,timer=null,pulseTimer=null;
 let hearing=false,hearToken=0;
+const book=new Wordbook({getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)});
+let composing=!!book.draft,melodyPlaying=false,melodyId=null,playbackWord=null;
 const edits=new Map();
-const frame=()=>live||(trace&&trace.frames[index]);
+try{const saved=JSON.parse(localStorage.getItem('apollo-rope-lab.rope-edits.v1')||'[]');if(Array.isArray(saved))for(const entry of saved){if(!Array.isArray(entry)||entry.length!==2)continue;const [key,word]=entry;if(typeof key==='string'&&/^\d+:\d+$/.test(key)&&Number.isInteger(word)&&word>=0&&word<=32767)edits.set(key,word);}}catch{}
+function saveEdits(){try{localStorage.setItem('apollo-rope-lab.rope-edits.v1',JSON.stringify([...edits]));}catch{}}
+const frame=()=>playbackWord?{...playbackWord,musical:true}:composing&&book.draft?{word:book.draft.word,name:book.draft.name,id:book.draft.id,musical:true}:live||(trace&&trace.frames[index]);
 const wordKey=f=>f.bank+':'+f.address;
-const displayedWord=f=>edits.get(wordKey(f))??f.word;
+const displayedWord=f=>f.musical?f.word:edits.get(wordKey(f))??f.word;
 const modified=f=>!!f&&displayedWord(f)!==f.word;
 const sonifier=new WordSonifier({enabled:()=>globalThis.RopeAudio.isEnabled(),onBit(i,bit){document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',+g.dataset.ropeBit===i));$('rope-hear-status').textContent='Bit '+(15-i)+' / '+bit+' / '+(bit?660:220)+' Hz';},onEnd(){hearing=false;$('rope-hear').textContent='HEAR THE WORD!';document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',false));}});
 try{const prefs=JSON.parse(localStorage.getItem('apollo-rope-lab.sonify.v1')||'{}');if(Number.isFinite(prefs.pace)&&prefs.pace>=50&&prefs.pace<=200)$('rope-bit-pace').value=String(prefs.pace);if(Number.isFinite(prefs.volume)&&prefs.volume>=0&&prefs.volume<=100)$('rope-tone-volume').value=String(prefs.volume);$('rope-sonify-replay').checked=prefs.replay===true;}catch{}
@@ -17,8 +22,8 @@ sonifier.setVolume(+$('rope-tone-volume').value/100);
 function saveToneSettings(){try{localStorage.setItem('apollo-rope-lab.sonify.v1',JSON.stringify({pace:+$('rope-bit-pace').value,volume:+$('rope-tone-volume').value,replay:$('rope-sonify-replay').checked}));}catch{}}
 function toneLabels(){$('rope-pace-label').textContent=$('rope-bit-pace').value+' ms';$('rope-volume-label').textContent=$('rope-tone-volume').value+'%';}
 const status=t=>$('rope-status').textContent=t;
-function stop(){hearToken++;playing=false;clearTimeout(timer);timer=null;sonifier.stop();$('rope-play').textContent=edits.size?'REPLAY EDITED WORDS':'REPLAY TRACE';}
-function controls(){for(const id of ['rope-preset','rope-read','rope-prev','rope-next','rope-play'])$(id).disabled=loading||!trace||!!live;$('rope-load').disabled=loading;$('rope-live').disabled=loading;$('rope-hear').disabled=loading||!(trace||live);$('rope-restore').disabled=loading||!modified(frame());if(!playing)$('rope-play').textContent=edits.size?'REPLAY EDITED WORDS':'REPLAY TRACE';if(trace&&!live){$('rope-prev').disabled=index===0;$('rope-next').disabled=index===trace.frames.length-1;}}
+function stop(){const wasMelody=melodyPlaying;hearToken++;playing=false;melodyPlaying=false;melodyId=null;playbackWord=null;clearTimeout(timer);timer=null;sonifier.stop();$('rope-play').textContent=edits.size?'REPLAY EDITED WORDS':'REPLAY TRACE';$('word-play').textContent='PLAY MELODY';$('word-name').disabled=false;document.querySelectorAll('[data-word-card]').forEach(c=>c.classList.toggle('playing',false));if(wasMelody){render();renderBook();}}
+function controls(){for(const id of ['rope-preset','rope-read','rope-prev','rope-next','rope-play'])$(id).disabled=loading||!trace||!!live;$('rope-load').disabled=loading;$('rope-live').disabled=loading;$('rope-hear').disabled=loading||!frame();$('rope-restore').disabled=loading||composing||!modified(frame());$('word-save').disabled=loading||melodyPlaying||!frame();$('word-name').disabled=melodyPlaying;$('word-save').textContent=composing&&book.draft?.id?'UPDATE WORD':'SAVE WORD';$('word-play').disabled=!book.words.length&&!book.draft;$('word-export').disabled=!book.words.length&&!book.draft;if(!playing)$('rope-play').textContent=edits.size?'REPLAY EDITED WORDS':'REPLAY TRACE';if(composing){$('rope-read').disabled=loading;$('rope-prev').disabled=$('rope-next').disabled=$('rope-play').disabled=true;}else if(trace&&!live){$('rope-prev').disabled=index===0;$('rope-next').disabled=index===trace.frames.length-1;}}
 async function hear(){const request=++hearToken;const f=frame();if(!f)return;if(!globalThis.RopeAudio.isEnabled()){$('rope-hear-status').textContent='Sound is muted. Enable sound in the Flight Deck or AGC sound controls.';return;}hearing=true;$('rope-hear').textContent='STOP WORD';try{const started=await sonifier.play(displayedWord(f),+$('rope-bit-pace').value);if(request!==hearToken)return;if(started){hearing=true;$('rope-hear').textContent='STOP WORD';}else sonifier.stop();}catch(e){if(request!==hearToken)return;sonifier.stop();$('rope-hear-status').textContent='Word audio unavailable: '+e.message;}}
 function wires(word){
  const bits=wordBits(word);
@@ -30,7 +35,8 @@ function wires(word){
 }
 function render(){
  const f=frame();if(!f){controls();return;}const edited=modified(f),word=displayedWord(f);
- $('rope-address').textContent='BANK '+oct(f.bank,2)+' / '+oct(f.address,4)+(edited?' / SANDBOX':'');$('rope-octal').textContent=oct(word);$('rope-binary').textContent=wordBits(word).join('').match(/.{3}/g).join(' ');wires(word);
+ $('rope-address').textContent=f.musical?'YOUR MUSICAL WORD / 15 BITS':'BANK '+oct(f.bank,2)+' / '+oct(f.address,4)+(edited?' / SANDBOX':'');$('rope-octal').textContent=oct(word);$('rope-binary').textContent=wordBits(word).join('').match(/.{3}/g).join(' ');wires(word);
+ if(f.musical){const pitch=wordNote(word);$('rope-instruction').textContent=f.name;$('rope-explanation').textContent='A new 15-bit musical word. Edit its bits and save it to your melody.';$('rope-registers').innerHTML='<tr><td colspan="3">Musical word — not an AGC execution.</td></tr>';$('rope-effect').textContent='Word-note pitch: '+pitch.name+' / '+pitch.frequency.toFixed(1)+' Hz. Hear the Word still plays each individual bit.';$('rope-timing').textContent='Your working draft is retained automatically. Save word adds it to the melody, or Update word changes the selected saved entry.';$('word-name').value=f.name;controls();return;}
  $('rope-instruction').textContent=live?'Live fixed-memory word':f.name;
  $('rope-explanation').textContent=live?'Read-only snapshot from '+f.program+'. This is the word at Z; pending instruction, EXTEND and interrupt context are not inferred.':f.explanation;
  const before=live?f:f.before,after=live?null:f.after;
@@ -40,9 +46,9 @@ function render(){
  if(edited){$('rope-instruction').textContent='Edited word / sandbox';$('rope-explanation').textContent='Original '+(live?'snapshot':f.name)+': '+oct(f.word)+'. The edited word '+oct(word)+' is for bit and sound exploration.';$('rope-registers').innerHTML='<tr><td colspan="3">Edited word has not been executed.</td></tr>';$('rope-effect').textContent='Sandbox edit. No CPU or original rope was changed. Restore word to return to the original recorded values.';$('rope-timing').textContent='Edited-word replay shows bits and sound only; it does not execute the edit.';}
  document.querySelectorAll('[data-rope-step]').forEach(b=>{b.classList.toggle('active',!live&&+b.dataset.ropeStep===index);b.setAttribute('aria-current',!live&&+b.dataset.ropeStep===index?'step':'false');});controls();
 }
-function read(){if(!trace||live)return;const el=$('rope-wires');el.classList.remove('reading');void el.offsetWidth;el.classList.add('reading');clearTimeout(pulseTimer);pulseTimer=setTimeout(()=>el.classList.remove('reading'),1150);}
-async function load(){
- if(loading)return;stop();edits.clear();live=null;
+function read(){if(!frame()||live&&!composing)return;const el=$('rope-wires');el.classList.remove('reading');void el.offsetWidth;el.classList.add('reading');clearTimeout(pulseTimer);pulseTimer=setTimeout(()=>el.classList.remove('reading'),1150);}
+async function load(reset=false){
+ if(loading)return;stop();live=null;if(reset){edits.clear();saveEdits();composing=false;$('word-name').value='';}
  if(trace){index=0;render();read();status('Verified original trace: 15 instructions, '+trace.cycles+' memory cycles.');return;}
  loading=true;controls();status('Verifying the rope and recording the original instructions…');
  try{
@@ -54,15 +60,35 @@ async function load(){
  }catch(e){status('Trace unavailable: '+e.message);}finally{loading=false;controls();}
 }
 function replay(){if(!trace||live)return;if(playing){stop();return;}sonifier.stop();playing=true;index=0;if(edits.size)status('Sandbox word replay: edits are not executed. Register values for untouched words belong to the original recording.');$('rope-play').textContent='PAUSE REPLAY';const advance=async()=>{if(!playing)return;if(document.hidden||$('inside').hidden){stop();return;}render();read();const musical=$('rope-sonify-replay').checked;if(musical)await hear();if(!playing)return;const duration=musical?15*(+$('rope-bit-pace').value)+180:900;timer=setTimeout(()=>{if(index===trace.frames.length-1){stop();return;}index++;advance();},duration);};advance();}
-$('rope-load').onclick=load;$('rope-read').onclick=read;$('rope-play').onclick=replay;
-$('rope-preset').onchange=()=>{stop();live=null;index=+$('rope-preset').value;render();read();};
+$('rope-load').onclick=()=>load(true);$('rope-read').onclick=read;$('rope-play').onclick=replay;
+$('rope-preset').onchange=()=>{stop();composing=false;live=null;index=+$('rope-preset').value;render();read();renderBook();};
 for(const [id,delta] of [['rope-prev',-1],['rope-next',1]])$(id).onclick=()=>{stop();index=Math.max(0,Math.min(trace.frames.length-1,index+delta));render();read();};
-$('rope-steps').onclick=e=>{const b=e.target.closest('[data-rope-step]');if(!b)return;stop();live=null;index=+b.dataset.ropeStep;render();read();};
-function chooseBit(target){const bit=target.closest('[data-rope-bit]'),f=frame();if(!bit||!f)return;const i=+bit.dataset.ropeBit;if(!Number.isInteger(i)||i<0||i>14)return;stop();selectedBit=i;const word=displayedWord(f)^(1<<(14-i));if(word===f.word)edits.delete(wordKey(f));else edits.set(wordKey(f),word);render();$('rope-wires').querySelector?.('[data-rope-bit="'+i+'"]')?.focus?.();if(!live)read();status(modified(f)?'Bit toggled. Sandbox word '+oct(word)+'. Hear the Word plays the edited bits; they have not been executed.':'Original word restored.');}
+$('rope-steps').onclick=e=>{const b=e.target.closest('[data-rope-step]');if(!b)return;stop();composing=false;live=null;index=+b.dataset.ropeStep;render();read();renderBook();};
+function chooseBit(target){const bit=target.closest('[data-rope-bit]'),f=frame();if(!bit||!f)return;const i=+bit.dataset.ropeBit;if(!Number.isInteger(i)||i<0||i>14)return;stop();selectedBit=i;const word=displayedWord(f)^(1<<(14-i));if(f.musical){if(f.id&&book.draft?.id!==f.id)book.select(f.id);book.setDraft(word,f.name);renderBook();}else if(word===f.word)edits.delete(wordKey(f));else edits.set(wordKey(f),word);if(!f.musical)saveEdits();render();$('rope-wires').querySelector?.('[data-rope-bit="'+i+'"]')?.focus?.();if(!live||composing)read();status(f.musical?'Musical draft '+oct(word)+' retained in the sketchbook.':modified(f)?'Bit toggled. Sandbox word '+oct(word)+'. Hear the Word plays the edited bits; they have not been executed.':'Original word restored.');}
 $('rope-wires').onclick=e=>chooseBit(e.target);$('rope-wires').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chooseBit(e.target);}};
-$('rope-live').onclick=()=>{stop();const snap=inspectBench();if(!snap){status('Boot the computer in Original AGC first, then return and peek.');return;}if(snap.pc<0o2000){status('Z currently points into erasable memory; this instruction is not a fixed-rope word. Peek again.');return;}if(snap.program!=='Luminary099.bin'){status('The bench is running CPU validation. Boot Apollo 11 to inspect its flight rope.');return;}try{live={...snap,address:snap.pc,word:fixedWord(snap.rom,snap.bank,snap.pc)};render();status('Read-only snapshot taken from the '+(snap.running?'running':'paused')+' original computer. Reset trace to return to the worked example.');}catch(e){status(e.message);}};
+$('rope-live').onclick=()=>{stop();const snap=inspectBench();if(!snap){status('Boot the computer in Original AGC first, then return and peek.');return;}if(snap.pc<0o2000){status('Z currently points into erasable memory; this instruction is not a fixed-rope word. Peek again.');return;}if(snap.program!=='Luminary099.bin'){status('The bench is running CPU validation. Boot Apollo 11 to inspect its flight rope.');return;}try{composing=false;live={...snap,address:snap.pc,word:fixedWord(snap.rom,snap.bank,snap.pc)};render();status('Read-only snapshot taken from the '+(snap.running?'running':'paused')+' original computer. Reset trace to return to the worked example.');}catch(e){status(e.message);}};
 $('rope-hear').onclick=()=>{if(hearing){hearToken++;sonifier.stop();return;}stop();return hear();};
-$('rope-restore').onclick=()=>{const f=frame();if(!f)return;stop();edits.delete(wordKey(f));render();status('Original word restored.');};
+$('rope-restore').onclick=()=>{const f=frame();if(!f)return;stop();edits.delete(wordKey(f));saveEdits();render();status('Original word restored.');};
 $('rope-bit-pace').oninput=()=>{stop();toneLabels();saveToneSettings();};$('rope-tone-volume').oninput=()=>{sonifier.setVolume(+$('rope-tone-volume').value/100);toneLabels();saveToneSettings();};$('rope-sonify-replay').onchange=()=>{stop();saveToneSettings();};
 document.addEventListener('rope-audio-preference',e=>{if(!e.detail.enabled)stop();});
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab==='inside'){if(!trace)load();}else stop();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);toneLabels();controls();
+function renderBook(){
+ const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ $('wordbook-list').innerHTML=book.words.map((w,i)=>'<div class="wordbook-card '+(composing&&book.draft?.id===w.id?'selected ':'')+(melodyId===w.id?'playing':'')+'" data-word-card="'+w.id+'"><button class="word-select" data-word-action="select" data-word-id="'+w.id+'">'+escape(w.name)+'<small>'+oct(w.word)+' / '+wordNote(w.word).name+'</small></button><small>'+wordBits(w.word).join('')+'</small><div class="word-actions"><button data-word-action="left" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' earlier" '+(i===0?'disabled':'')+'>←</button><button data-word-action="right" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' later" '+(i===book.words.length-1?'disabled':'')+'>→</button><button data-word-action="duplicate" data-word-id="'+w.id+'">COPY</button><button data-word-action="remove" data-word-id="'+w.id+'">REMOVE</button></div></div>').join('');
+ $('word-mode').value=book.mode;$('word-loop').checked=book.loop;$('wordbook-status').textContent=book.saved?(book.words.length+' saved word'+(book.words.length===1?'':'s')+'. Drafts are retained automatically; Save word keeps a snapshot in the melody.'):'Browser storage is unavailable. Download words to keep this sketchbook.';controls();
+}
+function openDraft(){composing=true;live=null;render();renderBook();read();}
+$('word-new').onclick=()=>{stop();try{book.keepDraft();book.newDraft(0,'Word '+(book.words.length+1));openDraft();}catch(e){$('wordbook-status').textContent=e.message;}};
+$('word-name').oninput=()=>{if(!composing||!book.draft)return;book.setDraft(book.draft.word,$('word-name').value);$('rope-instruction').textContent=book.draft.name;};
+$('word-save').onclick=()=>{stop();try{const f=frame();if(!f)return;if(!composing)book.newDraft(displayedWord(f),$('word-name').value||'Word '+(book.words.length+1));book.saveDraft();openDraft();}catch(e){$('wordbook-status').textContent=e.message;}};
+$('wordbook-list').onclick=e=>{const b=e.target.closest('[data-word-action]');if(!b||b.disabled)return;stop();const {wordAction:action,wordId:id}=b.dataset;try{if(action==='select'){book.select(id);openDraft();}else if(action==='left'||action==='right'){book.move(id,action==='left'?-1:1);renderBook();}else if(action==='duplicate'){book.duplicate(id);openDraft();}else if(action==='remove'){book.remove(id);if(!book.draft)composing=false;renderBook();render();}}catch(error){$('wordbook-status').textContent=error.message;}};
+$('word-mode').onchange=()=>{stop();book.mode=$('word-mode').value==='bits'?'bits':'notes';book.persist();renderBook();};$('word-loop').onchange=()=>{book.loop=$('word-loop').checked;book.persist();};
+async function playMelody(){
+ if(melodyPlaying){stop();renderBook();render();return;}if(!book.words.length&&!book.draft)return;if(!globalThis.RopeAudio.isEnabled()){$('wordbook-status').textContent='Sound is muted. Enable it before playing the melody.';return;}
+ stop();try{book.keepDraft();}catch(e){$('wordbook-status').textContent=e.message;return;}const sequence=book.words.map(w=>({...w}));melodyPlaying=true;let position=0;const token=hearToken;$('word-play').textContent='STOP MELODY';
+ const advance=async()=>{if(!melodyPlaying||token!==hearToken||document.hidden||$('inside').hidden){stop();return;}const word=sequence[position];playbackWord=word;melodyId=word.id;render();renderBook();read();const ms=+$('rope-bit-pace').value,duration=book.mode==='notes'?ms*5:ms*15;
+  try{const played=book.mode==='notes'?await sonifier.playNote(word.word,duration):await sonifier.play(word.word,ms);if(!melodyPlaying||token!==hearToken)return;if(!played){stop();return;}timer=setTimeout(()=>{position++;if(position===sequence.length){if(book.loop)position=0;else{stop();renderBook();render();return;}}advance();},duration+150);}catch(e){stop();$('wordbook-status').textContent='Melody audio unavailable: '+e.message;}
+ };return advance();
+}
+$('word-play').onclick=playMelody;
+$('word-export').onclick=()=>{const data=JSON.stringify({version:1,words:book.words,draft:book.draft,mode:book.mode,loop:book.loop},null,2);const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='hear-the-word-sketchbook.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab==='inside'){if(!trace)load();}else stop();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);toneLabels();renderBook();if(composing)render();controls();

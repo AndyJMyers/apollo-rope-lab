@@ -85,6 +85,30 @@ Erasable execution is identified as such, and the separate validation ROM
 is not displayed as flight software. Reset trace returns to the worked
 example. The existing explanatory articles remain below the explorer.
 
+### Word sketchbook and melodies
+
+**New blank word** starts an entirely new 15-bit musical draft. Bit changes
+and names are retained automatically in this browser. **Save word** keeps
+the displayed word in the melody; **Update word** updates a selected entry.
+Moving to a new draft or selecting another saved word also retains the
+previous draft. Words can be reordered, copied and removed. Drafts, saved
+words, playback mode and the loop preference restore on subsequent visits.
+Trace sandbox edits also persist; Reset trace clears those edits without
+clearing the musical sketchbook.
+
+**Play melody** offers two interpretations. **Bit phrases** uses the existing
+15-tone sonification. **Word notes** maps the full unsigned word onto 15
+pentatonic pitches from C3 to A5 (C, D, E, G, A across three octaves). Each
+note lasts five times the selected bit pace. Several word values map to the
+same note; choose bit phrases to hear individual bit differences. Melody
+playback has its own display state and does not overwrite the working draft.
+Looping is optional; mute, stop, navigation and document hiding cancel it.
+
+**Download words** provides a JSON backup of the words and draft. Storage
+is browser-local, not account-synchronised. If storage is blocked the app
+keeps working in memory and identifies the download as the retention route.
+Musical drafts and melody playback never modify or execute the flight rope.
+
 ### Mission sound
 
 Sound defaults to enabled in the Flight Deck, Original AGC bench and hardware experiment. **Mute sound** and the radio/loop check remain available. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. The enabled/muted preference, volume levels, spoken-comms setting and voice choice are saved locally between runs and visits. Flight and bench volume profiles remain separate. Browsers may require a click or keypress before playback; the first interaction automatically activates sound. Reset and tab changes stop current playback without changing the saved preference. When browser storage is blocked, settings still work for the current visit.
@@ -110,6 +134,11 @@ The **Flight Deck teaching model** does not execute original AGC software. It mo
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Use W/S to increase/decrease throttle and A/D to tilt left/right, or use the sliders. A key press takes manual control, preserving the current automatic command when already flying. Held keys adjust smoothly in wall time, independent of the simulation speed multiplier. Editing text and selecting a voice do not trigger flight shortcuts. The hardware bench supports the same keys, but FLATOUT retains throttle ownership. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
+
+`node tests/wordbook.test.mjs` checks persistent drafts, saved words, updates,
+retention when switching words, order/copy/remove, identifiers, note mapping
+and storage failures. The rope UI integration checks creation, named saving,
+escaped labels, melody playback and restoration in a fresh explorer instance.
 
 `node tests/sonify.test.mjs` checks bit order, pitch and weight, group ticks,
 audio scheduling, highlighting, volume/mute, cancellation and delayed
