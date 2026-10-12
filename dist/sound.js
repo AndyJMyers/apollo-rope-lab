@@ -85,7 +85,7 @@
    }).catch(finish);
   }
   toggle(){
-   const enabled=!this.enabled;for(const scene of Scene.instances){scene.enabled=enabled;if(!enabled)scene.pause();scene.updateButton();}this.saveSettings();if(enabled)this.ensureAudio();
+   const enabled=!this.enabled;for(const scene of Scene.instances){scene.enabled=enabled;if(!enabled)scene.pause();scene.updateButton();}this.saveSettings();if(document.dispatchEvent&&root.CustomEvent)document.dispatchEvent(new root.CustomEvent('rope-audio-preference',{detail:{enabled}}));if(enabled)this.ensureAudio();
   }
   ensureAudio(){
    if(!this.enabled||document.hidden||this.panel.closest('[hidden]'))return;
@@ -157,5 +157,5 @@
   reset(){this.pause();this.director.reset();this.previousAngle=0;this.lastBurst=-Infinity;this.el('transcript').replaceChildren();}
  }
  Scene.instances=new Set();
- root.RopeAudio={Scene,RadioDirector};if(typeof module!=='undefined')module.exports=root.RopeAudio;
+ root.RopeAudio={Scene,RadioDirector,isEnabled:()=>{const scene=Scene.instances.values().next().value;return scene?scene.enabled:readSettings().enabled!==false;}};if(typeof module!=='undefined')module.exports=root.RopeAudio;
 })(typeof window!=='undefined'?window:globalThis);

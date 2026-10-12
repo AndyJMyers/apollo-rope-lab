@@ -2,11 +2,19 @@
 import {AgcCore,CYCLE_US,verifiedBytes} from './core.mjs';
 import {fixedWord,wordBits,recordFlatout} from './rope-trace.mjs';
 import {inspectBench} from './lab.mjs';
+import {WordSonifier} from './sonify.mjs';
 const $=id=>document.getElementById(id),oct=(x,n=5)=>x.toString(8).padStart(n,'0');
 let trace=null,index=0,selectedBit=14,live=null,loading=false,playing=false,timer=null,pulseTimer=null;
+let hearing=false,hearToken=0;
+const sonifier=new WordSonifier({enabled:()=>globalThis.RopeAudio.isEnabled(),onBit(i,bit){document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',+g.dataset.ropeBit===i));$('rope-hear-status').textContent='Bit '+(15-i)+' / '+bit+' / '+(bit?660:220)+' Hz';},onEnd(){hearing=false;$('rope-hear').textContent='HEAR THIS WORD';document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',false));}});
+try{const prefs=JSON.parse(localStorage.getItem('apollo-rope-lab.sonify.v1')||'{}');if(Number.isFinite(prefs.pace)&&prefs.pace>=50&&prefs.pace<=200)$('rope-bit-pace').value=String(prefs.pace);if(Number.isFinite(prefs.volume)&&prefs.volume>=0&&prefs.volume<=100)$('rope-tone-volume').value=String(prefs.volume);$('rope-sonify-replay').checked=prefs.replay===true;}catch{}
+sonifier.setVolume(+$('rope-tone-volume').value/100);
+function saveToneSettings(){try{localStorage.setItem('apollo-rope-lab.sonify.v1',JSON.stringify({pace:+$('rope-bit-pace').value,volume:+$('rope-tone-volume').value,replay:$('rope-sonify-replay').checked}));}catch{}}
+function toneLabels(){$('rope-pace-label').textContent=$('rope-bit-pace').value+' ms';$('rope-volume-label').textContent=$('rope-tone-volume').value+'%';}
 const status=t=>$('rope-status').textContent=t;
-function stop(){playing=false;clearTimeout(timer);timer=null;$('rope-play').textContent='REPLAY TRACE';}
-function controls(){for(const id of ['rope-preset','rope-read','rope-prev','rope-next','rope-play'])$(id).disabled=loading||!trace||!!live;$('rope-load').disabled=loading;$('rope-live').disabled=loading;if(trace&&!live){$('rope-prev').disabled=index===0;$('rope-next').disabled=index===trace.frames.length-1;}}
+function stop(){hearToken++;playing=false;clearTimeout(timer);timer=null;sonifier.stop();$('rope-play').textContent='REPLAY TRACE';}
+function controls(){for(const id of ['rope-preset','rope-read','rope-prev','rope-next','rope-play'])$(id).disabled=loading||!trace||!!live;$('rope-load').disabled=loading;$('rope-live').disabled=loading;$('rope-hear').disabled=loading||!(trace||live);if(trace&&!live){$('rope-prev').disabled=index===0;$('rope-next').disabled=index===trace.frames.length-1;}}
+async function hear(){const request=++hearToken;const f=live||(trace&&trace.frames[index]);if(!f)return;if(!globalThis.RopeAudio.isEnabled()){$('rope-hear-status').textContent='Sound is muted. Enable sound in the Flight Deck or AGC sound controls.';return;}hearing=true;$('rope-hear').textContent='STOP WORD';try{const started=await sonifier.play(f.word,+$('rope-bit-pace').value);if(request!==hearToken)return;if(started){hearing=true;$('rope-hear').textContent='STOP WORD';}else sonifier.stop();}catch(e){if(request!==hearToken)return;sonifier.stop();$('rope-hear-status').textContent='Word audio unavailable: '+e.message;}}
 function wires(word){
  const bits=wordBits(word);
  $('rope-wires').innerHTML='<svg viewBox="0 0 960 200" role="group" aria-label="15 schematic sense-wire routes">'+bits.map((bit,i)=>{
@@ -39,12 +47,15 @@ async function load(){
   $('rope-load').textContent='RESET TRACE';status('Verified unchanged rope. Recorded 15 instructions in '+trace.cycles+' memory cycles ('+(trace.cycles*CYCLE_US).toFixed(2)+' µs).');render();read();
  }catch(e){status('Trace unavailable: '+e.message);}finally{loading=false;controls();}
 }
-function replay(){if(!trace||live)return;if(playing){stop();return;}playing=true;index=0;$('rope-play').textContent='PAUSE REPLAY';const advance=()=>{if(!playing)return;if(document.hidden||$('inside').hidden){stop();return;}render();read();if(index===trace.frames.length-1){stop();return;}timer=setTimeout(()=>{index++;advance();},900);};advance();}
+function replay(){if(!trace||live)return;if(playing){stop();return;}sonifier.stop();playing=true;index=0;$('rope-play').textContent='PAUSE REPLAY';const advance=async()=>{if(!playing)return;if(document.hidden||$('inside').hidden){stop();return;}render();read();const musical=$('rope-sonify-replay').checked;if(musical)await hear();if(!playing)return;const duration=musical?15*(+$('rope-bit-pace').value)+180:900;timer=setTimeout(()=>{if(index===trace.frames.length-1){stop();return;}index++;advance();},duration);};advance();}
 $('rope-load').onclick=load;$('rope-read').onclick=read;$('rope-play').onclick=replay;
 $('rope-preset').onchange=()=>{stop();live=null;index=+$('rope-preset').value;render();read();};
 for(const [id,delta] of [['rope-prev',-1],['rope-next',1]])$(id).onclick=()=>{stop();index=Math.max(0,Math.min(trace.frames.length-1,index+delta));render();read();};
 $('rope-steps').onclick=e=>{const b=e.target.closest('[data-rope-step]');if(!b)return;stop();live=null;index=+b.dataset.ropeStep;render();read();};
-function chooseBit(target){const bit=target.closest('[data-rope-bit]');if(!bit)return;selectedBit=+bit.dataset.ropeBit;render();if(!live)read();}
+function chooseBit(target){const bit=target.closest('[data-rope-bit]');if(!bit)return;stop();selectedBit=+bit.dataset.ropeBit;render();if(!live)read();}
 $('rope-wires').onclick=e=>chooseBit(e.target);$('rope-wires').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();chooseBit(e.target);}};
 $('rope-live').onclick=()=>{stop();const snap=inspectBench();if(!snap){status('Boot the computer in Original AGC first, then return and peek.');return;}if(snap.pc<0o2000){status('Z currently points into erasable memory; this instruction is not a fixed-rope word. Peek again.');return;}if(snap.program!=='Luminary099.bin'){status('The bench is running CPU validation. Boot Apollo 11 to inspect its flight rope.');return;}try{live={...snap,address:snap.pc,word:fixedWord(snap.rom,snap.bank,snap.pc)};render();status('Read-only snapshot taken from the '+(snap.running?'running':'paused')+' original computer. Reset trace to return to the worked example.');}catch(e){status(e.message);}};
-document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab==='inside'){if(!trace)load();}else stop();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});controls();
+$('rope-hear').onclick=()=>{if(hearing){hearToken++;sonifier.stop();return;}stop();return hear();};
+$('rope-bit-pace').oninput=()=>{stop();toneLabels();saveToneSettings();};$('rope-tone-volume').oninput=()=>{sonifier.setVolume(+$('rope-tone-volume').value/100);toneLabels();saveToneSettings();};$('rope-sonify-replay').onchange=()=>{stop();saveToneSettings();};
+document.addEventListener('rope-audio-preference',e=>{if(!e.detail.enabled)stop();});
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab==='inside'){if(!trace)load();}else stop();}));document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});window.addEventListener('pagehide',stop);toneLabels();controls();

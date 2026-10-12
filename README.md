@@ -59,6 +59,16 @@ milestone, inspect all 15 information bits, animate the schematic read,
 step through the instructions or replay the recorded execution slowly.
 Before/after register and channel values come from the actual emulator.
 
+**Hear this word** sonifies those same 15 bits, most significant first:
+1 uses a brighter 660 Hz triangle tone at greater weight; 0 uses a softer
+220 Hz sine tone. A faint tick marks each three-bit octal group. The active
+bit is highlighted in sync with the audio clock. **Sonify replay** is optional;
+when enabled, each instruction's phrase finishes before the next begins.
+Pace (50–200 ms/bit), tone volume and the replay option persist locally.
+The word player respects global mute and cancels queued notes on stop,
+selection changes, reset, navigation or document hiding. This is a musical
+interpretation, not historical core-rope acoustics or execution timing.
+
 The wiring glyphs show the through/bypass principle, not Apollo's physical
 strand layout, core allocation, selection circuitry or parity wiring.
 The trace uses the existing bounded FLATOUT entry harness; it is not a
@@ -98,6 +108,11 @@ The **Flight Deck teaching model** does not execute original AGC software. It mo
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Use W/S to increase/decrease throttle and A/D to tilt left/right, or use the sliders. A key press takes manual control, preserving the current automatic command when already flying. Held keys adjust smoothly in wall time, independent of the simulation speed multiplier. Editing text and selecting a voice do not trigger flight shortcuts. The hardware bench supports the same keys, but FLATOUT retains throttle ownership. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
+
+`node tests/sonify.test.mjs` checks bit order, pitch and weight, group ticks,
+audio scheduling, highlighting, volume/mute, cancellation and delayed
+AudioContext-resume races. Rope UI checks also cover Hear/Stop Word, pace
+and volume controls, and global mute. Listening QA remains outstanding.
 
 `node tests/rope-trace.test.mjs` checks bank indexing, bit order, the selected
 machine words, all 15 actual instruction transitions, cycle count and
