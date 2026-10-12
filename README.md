@@ -2,6 +2,14 @@
 
 Hardware coupling checkpoint for Andy J Myers. A playable teaching model, an original AGC workbench and a sensor/engine experiment. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
 
+## In The News
+
+![Bugs Bunny and Marvin the Martian on the Moon beside an explosive space modulator.](docs/images/bugs-bunny-in-haredevil-hare.jpg)
+
+*A moon-dew stars her hanging hair*
+
+[Image source: Silver Screenings](https://silverscreenings.org/2018/04/12/bugs-bunny-and-the-uranium-pu-36-explosive-space-modulator/).
+
 ## Core-rope construction
 
 ![Looping animation: sense wires thread through or bypass a magnetic core to encode 1011, followed by a set/reset read cycle.](docs/animations/core-rope.gif)
