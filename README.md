@@ -30,6 +30,17 @@ Select **Original AGC**, then **Boot Apollo 11**. This runs the preserved LMY99 
 
 **Run CPU validation** temporarily loads a separate modern regression program. It must reach PROG 77; some tests in that upstream suite are placeholders, so completion is not exhaustive CPU certification. Boot Apollo 11 again afterwards.
 
+The sound panel below the DSKY/workbench adds restrained clicks for accepted
+DSKY keys, quiet room ambience while the visible CPU runs, and brief male
+procedure comms for boot, V35 and V16 N65. Procedure acknowledgements follow
+the actual decoded display. A small pass/stop cue accompanies modern CPU
+validation and execution errors; these cues are app feedback, not historical
+AGC warning tones. There is no sound for individual instructions, memory
+changes or flashing annunciators. Pause, reset, leaving the panel and hiding
+the document stop active sound. Enabling a soundstage mutes the other one to
+prevent overlapping speech. Effects, ambience, spoken comms and voice choice
+have independent controls. Browser voices retain the existing quality limits.
+
 The computer bench remains separate from the landing game. The new hardware experiment connects a simplified vehicle to real accelerometer counters and tests an original throttle command; it is not a validated historical descent reconstruction. Browser clocks approximate real-time execution and pause while the document is hidden. No browser rendering QA was available in the build environment.
 
 `dist/agc/provenance.json` pins emulator/program source commits, SHA-256 hashes and byte sizes. The emulator's exported version string agrees with its documented source revision. All 36,864 information words in the flight binary agree with the separately proofed octal listing. The native build comparison checks host integration against the same source; it is not an independent CPU implementation.
@@ -40,7 +51,7 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ### Mission sound
 
-Both the Flight Deck and hardware experiment include **Enable sound** and **Radio check**. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. Audio starts only after a user gesture.
+The Flight Deck, Original AGC bench and hardware experiment include **Enable sound** and a radio/loop check. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. Audio starts only after a user gesture.
 
 Procedural Web Audio produces a throttle-linked engine rumble, short attitude-thruster bursts, radio squelch and a quiet room noise floor. Four dramatised roles—Eagle, Houston, Columbia and the back room—respond to startup, altitude crossings, periodic telemetry, low fuel, illustrative overload and surface contact. The orbiter participates in the dialogue; orbital dynamics are not simulated. Live lines are adapted from the terse operational style of the Apollo 11 landing transcript, with no casual chatter during descent. A safe Flight Deck landing plays Neil Armstrong’s original NASA landing announcement; other lines remain synthesised. See [audio sources](dist/audio/README.md). Speech uses browser-provided English voices, with captions when speech is unavailable. Automatic selection uses recognised male voices at natural pitch; an installed male voice can also be selected explicitly. Ambiguous defaults use captions. Voice quality and voice variety depend on the device. Engine/thruster sounds are an interpretive cabin soundscape, not a physical acoustic reconstruction.
 
@@ -63,6 +74,11 @@ The **Flight Deck teaching model** does not execute original AGC software. It mo
 Start at 600 m, 350 m from the pad. Default auto guidance lands safely. Add 25 workload units and compare protection enabled versus disabled, resetting between runs. Use W/S to increase/decrease throttle and A/D to tilt left/right, or use the sliders. A key press takes manual control, preserving the current automatic command when already flying. Held keys adjust smoothly in wall time, independent of the simulation speed multiplier. Editing text and selecting a voice do not trigger flight shortcuts. The hardware bench supports the same keys, but FLATOUT retains throttle ownership. Disable auto to fly by throttle and tilt. Landing requires |vertical velocity| ≤3 m/s, |horizontal velocity| ≤2 m/s and |pad offset| ≤40 m. Those are teaching thresholds, not historical certification limits.
 
 ## Validation
+
+`node tests/agc-bench-ui.test.mjs` exercises the unchanged core and rope with
+DOM stubs: accepted/disabled keys, boot and procedure comms, actual V35/V16 N65
+display acknowledgements, pause/resume, panel visibility and PROG77 feedback.
+It does not establish browser rendering or acoustic quality.
 
 `node tests/keyboard.test.js` checks key mapping, held-key rate, repeat suppression, bounds, manual takeover, text-focus protection and FLATOUT throttle ownership.
 

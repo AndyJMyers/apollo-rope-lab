@@ -18,11 +18,11 @@ radio.reset();radio.update(state,{active:true,hardware:true});const contact=radi
 // Exercise lifecycle and the audio graph without requiring sound hardware.
 class Element{
  constructor(){this.children=[];this.value='45';this.checked=true;this.gain=null;}
- append(...nodes){this.children.push(...nodes);}replaceChildren(){this.children=[];}remove(){}setAttribute(k,v){this[k]=v;}
+ append(...nodes){this.children.push(...nodes);}replaceChildren(){this.children=[];}remove(){}closest(){return this.hidden?this:null;}setAttribute(k,v){this[k]=v;}
  get firstChild(){const parent=this;return {remove(){parent.children.shift();}};}
  querySelector(selector){this.elements??={};return this.elements[selector]??=(new Element());}
 }
-class Param{constructor(){this.value=0;}setTargetAtTime(v){this.value=v;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}cancelScheduledValues(){}}
+class Param{constructor(){this.value=0;}setTargetAtTime(v){this.value=v;}setValueAtTime(v){this.value=v;}exponentialRampToValueAtTime(v){this.value=v;}cancelScheduledValues(){}linearRampToValueAtTime(v){this.value=v;}}
 class Node{constructor(){this.gain=new Param();this.frequency=new Param();this.threshold=new Param();this.ratio=new Param();}connect(){}disconnect(){}start(){}stop(){}}
 class Context{
  constructor(){this.currentTime=0;this.sampleRate=1000;this.destination=new Node();}
@@ -43,5 +43,5 @@ scene.toggle();assert.equal(scene.enabled,false);assert.equal(scene.fx.gain.valu
 assert.equal(scene.chooseVoice('EAGLE').name,'Microsoft David');assert.equal(spoken[0].pitch,1,'No artificial pitch shifting');
 const noAudio={...window,AudioContext:undefined,webkitAudioContext:undefined,speechSynthesis:undefined};const fallback={...sandbox,window:noAudio};vm.runInNewContext(fs.readFileSync(new URL('../dist/sound.js','file://'+__filename),'utf8'),fallback);const silent=new noAudio.RopeAudio.Scene(new Element());silent.toggle();assert.equal(silent.enabled,false);silent.observe(state,{active:true});assert(silent.el('transcript').children.length>0);
 scene.enabled=true;scene.archivePromise=Promise.resolve({duration:3.589});scene.queue=[{role:'EAGLE',text:'Archival landing announcement.',time:45,clip:'eagle-landed'}];scene.pump();
-Promise.resolve().then(()=>{assert(scene.clipSource,'NASA clip enters the Web Audio graph');scene.pause();assert.equal(scene.clipSource,null);assert.equal(timers.size,0);const previous=window.speechSynthesis.getVoices;window.speechSynthesis.getVoices=()=>[{lang:'en-US',name:'Microsoft Zira'}];assert.equal(scene.chooseVoice('HOUSTON'),null,'Never silently default to a female voice');window.speechSynthesis.getVoices=previous;});
+Promise.resolve().then(()=>{assert(scene.clipSource,'NASA clip enters the Web Audio graph');scene.pause();assert.equal(scene.clipSource,null);assert.equal(timers.size,0);const previous=window.speechSynthesis.getVoices;window.speechSynthesis.getVoices=()=>[{lang:'en-US',name:'Microsoft Zira'}];assert.equal(scene.chooseVoice('HOUSTON'),null,'Never silently default to a female voice');window.speechSynthesis.getVoices=previous;const bench=new window.RopeAudio.Scene(new Element(),{bench:true});bench.toggle();bench.setBenchActive(true);assert.equal(bench.engine.gain.value,0);assert(bench.ambient.gain.value>0);assert.equal(bench.archivePromise,null);assert.equal(scene.enabled,false,'Only one soundstage can be enabled');bench.keyClick();assert.equal(bench.keyNoise.gain.value,0.0001);bench.labCue(true);assert.equal(bench.shortEffects.size,2);bench.pause();assert.equal(bench.shortEffects.size,0);assert.equal(bench.ambient.gain.value,0);bench.panel.hidden=true;bench.keyNoise.gain.value=0;bench.keyClick();assert.equal(bench.keyNoise.gain.value,0,'No key effects in a hidden panel');bench.enabled=false;bench.panel.hidden=false;bench.keyClick();assert.equal(bench.keyNoise.gain.value,0);});
 console.log('PASS: all four radio roles, telemetry-driven calls, pause and duplicate suppression, truthful contact wording, captions without audio, engine graph, mute/reset/visibility cleanup and speech cancellation. Audio quality and browser playback need listening QA.');
