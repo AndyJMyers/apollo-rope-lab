@@ -16,6 +16,8 @@ The animation repeats automatically. Regenerate it with `python3 tools/render_co
 
 The private listening page combines the album cover, a five-minute stereo track and the repeating core-rope animation. The web player uses a 192 kbps MP3 made from the original 48 kHz stereo WAV; the original WAV master is retained separately. Playback starts when you press play.
 
+[**Full WAV and album experience on Substack**](https://andyjmyers.substack.com/p/hope-hope-hope)
+
 ## Run locally
 
 Serve `dist/` over HTTP (required for ES modules and WebAssembly): `python3 -m http.server 8000 --directory dist`. Open http://localhost:8000 .
