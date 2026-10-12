@@ -49,7 +49,7 @@ Corresponding emulator and CPU-test source, build instructions and licence are u
 
 ## Scope
 
-### Follow a word through the rope
+### Hear the Word!
 
 **03 / Inside the Box** now includes a verified rope-word explorer. The tab
 records the original FLATOUT command path in an isolated diagnostic core:
@@ -59,7 +59,7 @@ milestone, inspect all 15 information bits, animate the schematic read,
 step through the instructions or replay the recorded execution slowly.
 Before/after register and channel values come from the actual emulator.
 
-**Hear this word** sonifies those same 15 bits, most significant first:
+**Hear the Word!** sonifies those same 15 bits, most significant first:
 1 uses a brighter 660 Hz triangle tone at greater weight; 0 uses a softer
 220 Hz sine tone. A faint tick marks each three-bit octal group. The active
 bit is highlighted in sync with the audio clock. **Sonify replay** is optional;

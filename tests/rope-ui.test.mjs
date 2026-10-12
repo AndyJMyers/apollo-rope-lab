@@ -25,7 +25,7 @@ class ToneParam{setValueAtTime(){}linearRampToValueAtTime(){}exponentialRampToVa
 class ToneNode{constructor(){this.gain=new ToneParam();this.frequency={value:0};}connect(){}disconnect(){}start(){}stop(){}}
 let toneContext;globalThis.AudioContext=class{constructor(){toneContext=this;this.currentTime=0;this.destination={};this.nodes=[];}createGain(){return new ToneNode();}createOscillator(){const node=new ToneNode();this.nodes.push(node);return node;}async resume(){}};
 globalThis.RopeAudio.isEnabled=()=>true;globalThis.requestAnimationFrame=fn=>setTimeout(fn,20);globalThis.cancelAnimationFrame=clearTimeout;
-await $('rope-hear').onclick();assert.equal($('rope-hear').textContent,'STOP WORD');assert.equal(toneContext.nodes.length,20);$('rope-hear').onclick();assert.equal($('rope-hear').textContent,'HEAR THIS WORD');
+await $('rope-hear').onclick();assert.equal($('rope-hear').textContent,'STOP WORD');assert.equal(toneContext.nodes.length,20);$('rope-hear').onclick();assert.equal($('rope-hear').textContent,'HEAR THE WORD!');
 $('rope-bit-pace').value='200';$('rope-bit-pace').oninput();assert.equal($('rope-pace-label').textContent,'200 ms');$('rope-tone-volume').value='60';$('rope-tone-volume').oninput();assert.equal($('rope-volume-label').textContent,'60%');
 globalThis.RopeAudio.isEnabled=()=>false;await $('rope-hear').onclick();assert.match($('rope-hear-status').textContent,/Sound is muted/);
 console.log('PASS: Hear/Stop Word controls, real tone scheduling from selected rope word, pace/volume labels and global mute.');
