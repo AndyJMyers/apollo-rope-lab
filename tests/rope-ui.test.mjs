@@ -17,7 +17,7 @@ $('rope-preset').value='14';$('rope-preset').onchange();assert.equal($('rope-ins
 $('rope-live').onclick();assert.match($('rope-status').textContent,/CPU validation/);
 await $('agc-boot').onclick();const before=inspectBench();$('rope-live').onclick();const after=inspectBench();assert.equal(before.cycles,after.cycles);assert.equal(before.pc,after.pc);assert.equal($('rope-instruction').textContent,'Live fixed-memory word');assert($('rope-play').disabled);
 await $('rope-load').onclick();assert.equal($('rope-instruction').textContent,'CAF BIT13');assert.equal($('rope-play').disabled,false);
-$('rope-wires').onclick({target:{closest:()=>({dataset:{ropeBit:'0'}})}});assert.match($('rope-bit-detail').textContent,/Bit 15/);
+$('rope-wires').onclick({target:{closest:()=>({dataset:{ropeBit:'0'}})}});assert.match($('rope-bit-detail').textContent,/Bit 15/);assert.equal($('rope-octal').textContent,'74737');assert.match($('rope-effect').textContent,/Sandbox edit/);assert.match($('rope-registers').innerHTML,/not been executed/);$('rope-restore').onclick();assert.equal($('rope-octal').textContent,'34737');
 $('rope-play').onclick();assert.equal($('rope-play').textContent,'PAUSE REPLAY');$('rope-play').onclick();assert.equal($('rope-play').textContent,'REPLAY TRACE');
 console.log('PASS: real trace load, preset/step navigation, bit inspection, replay controls, validation exclusion and non-mutating live flight-bench snapshot.');
 
@@ -29,3 +29,13 @@ await $('rope-hear').onclick();assert.equal($('rope-hear').textContent,'STOP WOR
 $('rope-bit-pace').value='200';$('rope-bit-pace').oninput();assert.equal($('rope-pace-label').textContent,'200 ms');$('rope-tone-volume').value='60';$('rope-tone-volume').oninput();assert.equal($('rope-volume-label').textContent,'60%');
 globalThis.RopeAudio.isEnabled=()=>false;await $('rope-hear').onclick();assert.match($('rope-hear-status').textContent,/Sound is muted/);
 console.log('PASS: Hear/Stop Word controls, real tone scheduling from selected rope word, pace/volume labels and global mute.');
+
+// Double toggle and keyboard activation are reversible; edits never reach CPU.
+const cpuBefore=inspectBench(),originalWord=$('rope-octal').textContent;
+const firstBit={closest:()=>({dataset:{ropeBit:'0'}})};
+$('rope-wires').onclick({target:firstBit});assert.equal($('rope-octal').textContent,'74737');assert.equal($('rope-play').textContent,'REPLAY EDITED WORDS');globalThis.RopeAudio.isEnabled=()=>true;await $('rope-hear').onclick();assert.equal(toneContext.nodes.at(-20).frequency.value,660,'Sonification reads the toggled MSB');$('rope-hear').onclick();
+$('rope-wires').onkeydown({key:'Enter',target:firstBit,preventDefault(){}});assert.equal($('rope-octal').textContent,originalWord);assert($('rope-restore').disabled);
+$('rope-wires').onclick({target:firstBit});const lastBit={closest:()=>({dataset:{ropeBit:'14'}})};$('rope-wires').onclick({target:lastBit});assert.equal($('rope-octal').textContent,'74736');assert.equal(inspectBench().cycles,cpuBefore.cycles);assert.equal(inspectBench().pc,cpuBefore.pc);
+$('rope-restore').onclick();assert.equal($('rope-octal').textContent,originalWord);
+$('rope-wires').onclick({target:firstBit});await $('rope-load').onclick();assert.equal($('rope-octal').textContent,originalWord);assert.equal($('rope-play').textContent,'REPLAY TRACE');
+console.log('PASS: MSB/LSB click toggles, keyboard reversal, edited-word marking, restore/reset and unchanged live CPU.');

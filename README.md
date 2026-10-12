@@ -64,6 +64,8 @@ Before/after register and channel values come from the actual emulator.
 220 Hz sine tone. A faint tick marks each three-bit octal group. The active
 bit is highlighted in sync with the audio clock. **Sonify replay** is optional;
 when enabled, each instruction's phrase finishes before the next begins.
+Click a bit (or press Enter/Space) to toggle it between 0 and 1. Octal, binary, schematic routing and sonification follow the edited word. Edits are sandbox values: the original rope and live CPU remain unchanged, and edited-word effects are marked as not executed. Restore word clears the selected word’s edits; Reset trace clears all edits. Edited-word replay is visual/audio playback, not execution.
+
 Pace (50–200 ms/bit), tone volume and the replay option persist locally.
 The word player respects global mute and cancels queued notes on stop,
 selection changes, reset, navigation or document hiding. This is a musical
