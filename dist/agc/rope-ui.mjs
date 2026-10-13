@@ -2,7 +2,7 @@
 import {AgcCore,CYCLE_US,verifiedBytes} from './core.mjs';
 import {fixedWord,wordBits,recordFlatout} from './rope-trace.mjs';
 import {inspectBench} from './lab.mjs';
-import {WordSonifier,wordNote} from './sonify.mjs';
+import {WordSonifier,scorePentatonic} from './sonify.mjs';
 import {Wordbook} from './wordbook.mjs';
 const $=id=>document.getElementById(id),oct=(x,n=5)=>x.toString(8).padStart(n,'0');
 let trace=null,index=0,selectedBit=14,live=null,loading=false,playing=false,timer=null,pulseTimer=null;
@@ -16,7 +16,7 @@ const frame=()=>playbackWord?{...playbackWord,musical:true}:composing&&book.draf
 const wordKey=f=>f.bank+':'+f.address;
 const displayedWord=f=>f.musical?f.word:edits.get(wordKey(f))??f.word;
 const modified=f=>!!f&&displayedWord(f)!==f.word;
-const sonifier=new WordSonifier({enabled:()=>globalThis.RopeAudio.isEnabled(),onBit(i,bit){document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',+g.dataset.ropeBit===i));$('rope-hear-status').textContent='Bit '+(15-i)+' / '+bit+' / '+(bit?660:220)+' Hz';},onEnd(){hearing=false;$('rope-hear').textContent='HEAR THE WORD!';document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',false));}});
+const sonifier=new WordSonifier({enabled:()=>globalThis.RopeAudio.isEnabled(),onBit(i,bit,span=1,name){document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',+g.dataset.ropeBit>=i&&+g.dataset.ropeBit<i+span));$('rope-hear-status').textContent=span===3?'Group '+(i/3+1)+' / '+bit+' / '+name:'Bit '+(15-i)+' / '+bit+' / '+(bit?660:220)+' Hz';},onEnd(){hearing=false;$('rope-hear').textContent='HEAR THE WORD!';document.querySelectorAll('[data-rope-bit]').forEach(g=>g.classList.toggle('sounding',false));}});
 try{const prefs=JSON.parse(localStorage.getItem('apollo-rope-lab.sonify.v1')||'{}');if(Number.isFinite(prefs.pace)&&prefs.pace>=50&&prefs.pace<=200)$('rope-bit-pace').value=String(prefs.pace);if(Number.isFinite(prefs.volume)&&prefs.volume>=0&&prefs.volume<=100)$('rope-tone-volume').value=String(prefs.volume);$('rope-sonify-replay').checked=prefs.replay===true;}catch{}
 sonifier.setVolume(+$('rope-tone-volume').value/100);
 function saveToneSettings(){try{localStorage.setItem('apollo-rope-lab.sonify.v1',JSON.stringify({pace:+$('rope-bit-pace').value,volume:+$('rope-tone-volume').value,replay:$('rope-sonify-replay').checked}));}catch{}}
@@ -36,7 +36,7 @@ function wires(word){
 function render(){
  const f=frame();if(!f){controls();return;}const edited=modified(f),word=displayedWord(f);
  $('rope-address').textContent=f.musical?'YOUR MUSICAL WORD / 15 BITS':'BANK '+oct(f.bank,2)+' / '+oct(f.address,4)+(edited?' / SANDBOX':'');$('rope-octal').textContent=oct(word);$('rope-binary').textContent=wordBits(word).join('').match(/.{3}/g).join(' ');wires(word);
- if(f.musical){const pitch=wordNote(word);$('rope-instruction').textContent=f.name;$('rope-explanation').textContent='A new 15-bit musical word. Edit its bits and save it to your melody.';$('rope-registers').innerHTML='<tr><td colspan="3">Musical word — not an AGC execution.</td></tr>';$('rope-effect').textContent='Word-note pitch: '+pitch.name+' / '+pitch.frequency.toFixed(1)+' Hz. Hear the Word still plays each individual bit.';$('rope-timing').textContent='Your working draft is retained automatically. Save word adds it to the melody, or Update word changes the selected saved entry.';$('word-name').value=f.name;controls();return;}
+ if(f.musical){const phrase=scorePentatonic(word);$('rope-instruction').textContent=f.name;$('rope-explanation').textContent='A new 15-bit musical word. Edit its bits and save it to your melody.';$('rope-registers').innerHTML='<tr><td colspan="3">Musical word — not an AGC execution.</td></tr>';$('rope-effect').textContent='Pentatonic phrase: '+phrase.map(n=>n.name).join(' → ')+'. Each three-bit group makes one note. Hear the Word still plays individual bits.';$('rope-timing').textContent='Your working draft is retained automatically. Save word adds it to the melody, or Update word changes the selected saved entry.';$('word-name').value=f.name;controls();return;}
  $('rope-instruction').textContent=live?'Live fixed-memory word':f.name;
  $('rope-explanation').textContent=live?'Read-only snapshot from '+f.program+'. This is the word at Z; pending instruction, EXTEND and interrupt context are not inferred.':f.explanation;
  const before=live?f:f.before,after=live?null:f.after;
@@ -73,7 +73,7 @@ $('rope-bit-pace').oninput=()=>{stop();toneLabels();saveToneSettings();};$('rope
 document.addEventListener('rope-audio-preference',e=>{if(!e.detail.enabled)stop();});
 function renderBook(){
  const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- $('wordbook-list').innerHTML=book.words.map((w,i)=>'<div class="wordbook-card '+(composing&&book.draft?.id===w.id?'selected ':'')+(melodyId===w.id?'playing':'')+'" data-word-card="'+w.id+'"><button class="word-select" data-word-action="select" data-word-id="'+w.id+'">'+escape(w.name)+'<small>'+oct(w.word)+' / '+wordNote(w.word).name+'</small></button><small>'+wordBits(w.word).join('')+'</small><div class="word-actions"><button data-word-action="left" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' earlier" '+(i===0?'disabled':'')+'>←</button><button data-word-action="right" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' later" '+(i===book.words.length-1?'disabled':'')+'>→</button><button data-word-action="duplicate" data-word-id="'+w.id+'">COPY</button><button data-word-action="remove" data-word-id="'+w.id+'">REMOVE</button></div></div>').join('');
+ $('wordbook-list').innerHTML=book.words.map((w,i)=>'<div class="wordbook-card '+(composing&&book.draft?.id===w.id?'selected ':'')+(melodyId===w.id?'playing':'')+'" data-word-card="'+w.id+'"><button class="word-select" data-word-action="select" data-word-id="'+w.id+'">'+escape(w.name)+'<small>'+oct(w.word)+' / '+scorePentatonic(w.word).map(n=>n.name).join(' · ')+'</small></button><small>'+wordBits(w.word).join('')+'</small><div class="word-actions"><button data-word-action="left" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' earlier" '+(i===0?'disabled':'')+'>←</button><button data-word-action="right" data-word-id="'+w.id+'" aria-label="Move '+escape(w.name)+' later" '+(i===book.words.length-1?'disabled':'')+'>→</button><button data-word-action="duplicate" data-word-id="'+w.id+'">COPY</button><button data-word-action="remove" data-word-id="'+w.id+'">REMOVE</button></div></div>').join('');
  $('word-mode').value=book.mode;$('word-loop').checked=book.loop;$('wordbook-status').textContent=book.saved?(book.words.length+' saved word'+(book.words.length===1?'':'s')+'. Drafts are retained automatically; Save word keeps a snapshot in the melody.'):'Browser storage is unavailable. Download words to keep this sketchbook.';controls();
 }
 function openDraft(){composing=true;live=null;render();renderBook();read();}
@@ -85,8 +85,8 @@ $('word-mode').onchange=()=>{stop();book.mode=$('word-mode').value==='bits'?'bit
 async function playMelody(){
  if(melodyPlaying){stop();renderBook();render();return;}if(!book.words.length&&!book.draft)return;if(!globalThis.RopeAudio.isEnabled()){$('wordbook-status').textContent='Sound is muted. Enable it before playing the melody.';return;}
  stop();try{book.keepDraft();}catch(e){$('wordbook-status').textContent=e.message;return;}const sequence=book.words.map(w=>({...w}));melodyPlaying=true;let position=0;const token=hearToken;$('word-play').textContent='STOP MELODY';
- const advance=async()=>{if(!melodyPlaying||token!==hearToken||document.hidden||$('inside').hidden){stop();return;}const word=sequence[position];playbackWord=word;melodyId=word.id;render();renderBook();read();const ms=+$('rope-bit-pace').value,duration=book.mode==='notes'?ms*5:ms*15;
-  try{const played=book.mode==='notes'?await sonifier.playNote(word.word,duration):await sonifier.play(word.word,ms);if(!melodyPlaying||token!==hearToken)return;if(!played){stop();return;}timer=setTimeout(()=>{position++;if(position===sequence.length){if(book.loop)position=0;else{stop();renderBook();render();return;}}advance();},duration+150);}catch(e){stop();$('wordbook-status').textContent='Melody audio unavailable: '+e.message;}
+ const advance=async()=>{if(!melodyPlaying||token!==hearToken||document.hidden||$('inside').hidden){stop();return;}const word=sequence[position];playbackWord=word;melodyId=word.id;render();renderBook();read();const ms=+$('rope-bit-pace').value,duration=ms*15;
+  try{const played=book.mode==='notes'?await sonifier.playPentatonic(word.word,ms):await sonifier.play(word.word,ms);if(!melodyPlaying||token!==hearToken)return;if(!played){stop();return;}timer=setTimeout(()=>{position++;if(position===sequence.length){if(book.loop)position=0;else{stop();renderBook();render();return;}}advance();},duration+150);}catch(e){stop();$('wordbook-status').textContent='Melody audio unavailable: '+e.message;}
  };return advance();
 }
 $('word-play').onclick=playMelody;

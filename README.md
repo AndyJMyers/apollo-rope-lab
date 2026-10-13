@@ -105,13 +105,13 @@ Trace sandbox edits also persist; Reset trace clears those edits without
 clearing the musical sketchbook.
 
 **Play melody** offers two interpretations. **Bit phrases** uses the existing
-15-tone sonification. **Word notes** uses the unsigned word modulo 15 to select one of 15
-pentatonic pitches from C3 to A5 (C, D, E, G, A across three octaves). Every
-single-bit toggle changes pitch; the scale repeats every 15 word values. Each
-note lasts five times the selected bit pace. Several word values map to the
-same note; choose bit phrases to hear individual bit differences. Word-note mode
-plays one note per saved word, rather than 15 notes within a single word. Melody
-playback has its own display state and does not overwrite the working draft.
+15-tone sonification. **Pentatonic phrases** turns each word into five notes,
+reading its five three-bit groups from left to right. Octal values 0–7 map
+to C3, D3, E3, G3, A3, C4, D4 and E4. Each single-bit toggle changes its
+group's note. Each note lasts three times the selected bit pace; one word
+forms a complete phrase and saved words join into a longer tune. The current
+group highlights during playback and cards show the five-note sequence.
+Melody playback does not overwrite the working draft.
 Looping is optional; mute, stop, navigation and document hiding cancel it.
 
 **Download words** provides a JSON backup of the words and draft. Storage

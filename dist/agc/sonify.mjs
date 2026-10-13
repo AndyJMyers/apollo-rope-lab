@@ -9,6 +9,11 @@ export function scoreWord(word,bitMs=100){
  if(!Number.isFinite(bitMs)||bitMs<50||bitMs>200)throw new Error('Bit pace must be 50–200 ms.');
  return wordBits(word).map((bit,i)=>({bit,index:i,offset:i*bitMs/1000,duration:bitMs/1000*0.72,frequency:bit?660:220,type:bit?'triangle':'sine',weight:bit?0.12:0.06,group:i%3===0}));
 }
+export function scorePentatonic(word,bitMs=100){
+ if(!Number.isFinite(bitMs)||bitMs<50||bitMs>200)throw new Error('Bit pace must be 50–200 ms.');
+ const bits=wordBits(word),duration=3*bitMs/1000;
+ return Array.from({length:5},(_,i)=>{const value=(bits[i*3]<<2)|(bits[i*3+1]<<1)|bits[i*3+2];return {...wordNote(value),value,index:i*3,offset:i*duration,duration:duration*.85};});
+}
 export class WordSonifier {
  constructor({contextFactory,enabled=()=>true,onBit=()=>{},onEnd=()=>{}}={}){this.contextFactory=contextFactory||(()=>new (globalThis.AudioContext||globalThis.webkitAudioContext)());this.enabled=enabled;this.onBit=onBit;this.onEnd=onEnd;this.sources=new Set();this.animation=null;this.token=0;this.volume=.35;}
  async play(word,bitMs=100){
@@ -31,6 +36,14 @@ export class WordSonifier {
   const pitch=wordNote(word);if(!Number.isFinite(durationMs)||durationMs<100||durationMs>2000)throw new Error('Invalid note duration.');this.stop();if(!this.enabled())return false;const token=this.token;this.context??=this.contextFactory();if(!this.master){this.master=this.context.createGain();this.master.connect(this.context.destination);}this.master.gain.value=this.volume;await this.context.resume();if(token!==this.token||!this.enabled())return false;
   const start=this.context.currentTime+0.025;this.note(pitch.frequency,'triangle',.15,start,durationMs/1000*.85);
   const frame=()=>{if(token!==this.token)return;if(!this.enabled()){this.stop();return;}if(this.context.currentTime>=start+durationMs/1000){this.animation=null;this.onEnd();return;}this.animation=requestAnimationFrame(frame);};this.animation=requestAnimationFrame(frame);return true;
+ }
+ async playPentatonic(word,bitMs=100){
+  const score=scorePentatonic(word,bitMs);this.stop();if(!this.enabled())return false;
+  const token=this.token;this.context??=this.contextFactory();if(!this.master){this.master=this.context.createGain();this.master.connect(this.context.destination);}this.master.gain.value=this.volume;await this.context.resume();if(token!==this.token||!this.enabled())return false;
+  const start=this.context.currentTime+.025,pace=3*bitMs/1000;
+  for(const note of score)this.note(note.frequency,'triangle',.15,start+note.offset,note.duration);
+  let last=-1;
+  const frame=()=>{if(token!==this.token)return;if(!this.enabled()){this.stop();return;}const position=Math.floor((this.context.currentTime-start)/pace);if(position>=0&&position<5&&position!==last){last=position;const note=score[position];this.onBit(note.index,note.value,3,note.name);}if(this.context.currentTime>=start+5*pace){this.animation=null;this.onEnd();return;}this.animation=requestAnimationFrame(frame);};this.animation=requestAnimationFrame(frame);return true;
  }
  setVolume(value){this.volume=Math.max(0,Math.min(1,value));if(this.master)this.master.gain.setTargetAtTime(this.volume,this.context.currentTime,0.02);}
  stop(){this.token++;if(this.animation!==null)cancelAnimationFrame(this.animation);this.animation=null;for(const oscillator of this.sources){oscillator.stop();oscillator.disconnect();}this.sources.clear();this.onEnd();}

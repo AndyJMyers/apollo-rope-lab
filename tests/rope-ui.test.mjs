@@ -46,19 +46,19 @@ $('word-new').onclick();$('word-name').value='Top';$('word-name').oninput();$('w
 const card=(action,id)=>({target:{closest:()=>({dataset:{wordAction:action,wordId:id}})}});
 $('wordbook-list').onclick(card('left','w2'));assert($('wordbook-list').innerHTML.indexOf('Top')<$('wordbook-list').innerHTML.indexOf('Bass'));
 $('wordbook-list').onclick(card('duplicate','w1'));assert.match($('wordbook-status').textContent,/3 saved words/);$('wordbook-list').onclick(card('remove','w3'));assert.match($('wordbook-status').textContent,/2 saved words/);
-globalThis.RopeAudio.isEnabled=()=>true;$('word-mode').value='notes';$('word-mode').onchange();const tonesBefore=toneContext.nodes.length;await $('word-play').onclick();assert.equal($('word-play').textContent,'STOP MELODY');assert.equal(toneContext.nodes.length,tonesBefore+1,'Word-note mode schedules one note per word');$('word-play').onclick();assert.equal($('word-play').textContent,'PLAY MELODY');
+globalThis.RopeAudio.isEnabled=()=>true;$('word-mode').value='notes';$('word-mode').onchange();const tonesBefore=toneContext.nodes.length;await $('word-play').onclick();assert.equal($('word-play').textContent,'STOP MELODY');assert.equal(toneContext.nodes.length,tonesBefore+5,'Pentatonic mode schedules five notes from a single word');$('word-play').onclick();assert.equal($('word-play').textContent,'PLAY MELODY');
 // Advance the actual melody's timers: verify both words and a loop, not just its first note.
 const realTimeout=globalThis.setTimeout,realClearTimeout=globalThis.clearTimeout;
 const melodyTimers=new Map();let melodyTimerId=100000;
 globalThis.setTimeout=(fn,ms)=>{melodyTimers.set(++melodyTimerId,{fn,ms});return melodyTimerId;};
 globalThis.clearTimeout=id=>melodyTimers.delete(id);
-const nextWord=async()=>{const [id,entry]=[...melodyTimers].filter(([,t])=>t.ms===1150).at(-1);melodyTimers.delete(id);entry.fn();await Promise.resolve();await Promise.resolve();};
+const nextWord=async()=>{const [id,entry]=[...melodyTimers].filter(([,t])=>t.ms===3150).at(-1);melodyTimers.delete(id);entry.fn();await Promise.resolve();await Promise.resolve();};
 $('word-loop').checked=true;$('word-loop').onchange();
 const sequenceStart=toneContext.nodes.length;await $('word-play').onclick();
-assert.equal($('rope-instruction').textContent,'Top');const firstPitch=toneContext.nodes.at(-1).frequency.value;
-await nextWord();assert.equal($('rope-instruction').textContent,'Bass <test>');assert.notEqual(toneContext.nodes.at(-1).frequency.value,firstPitch,'Second saved word sounds a different pentatonic note');
-await nextWord();assert.equal($('rope-instruction').textContent,'Top');assert.equal(toneContext.nodes.at(-1).frequency.value,firstPitch);assert.equal(toneContext.nodes.length,sequenceStart+3);
-$('word-play').onclick();assert(![...melodyTimers.values()].some(t=>t.ms===1150),'Stop removes pending melody advance');
+assert.equal($('rope-instruction').textContent,'Top');const firstPitch=toneContext.nodes.at(-5).frequency.value;
+await nextWord();assert.equal($('rope-instruction').textContent,'Bass <test>');assert.notEqual(toneContext.nodes.at(-5).frequency.value,firstPitch,'Second saved word sounds a different pentatonic note');
+await nextWord();assert.equal($('rope-instruction').textContent,'Top');assert.equal(toneContext.nodes.at(-5).frequency.value,firstPitch);assert.equal(toneContext.nodes.length,sequenceStart+15);
+$('word-play').onclick();assert(![...melodyTimers.values()].some(t=>t.ms===3150),'Stop removes pending melody advance');
 globalThis.setTimeout=realTimeout;globalThis.clearTimeout=realClearTimeout;
 $('word-loop').checked=false;$('word-loop').onchange();
 console.log('PASS: new musical words, named saving, HTML-safe titles, order/copy/remove, distinct sequential pentatonic notes, looping and cancellation.');
