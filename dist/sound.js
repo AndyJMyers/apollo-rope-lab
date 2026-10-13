@@ -27,6 +27,10 @@
      say('HOUSTON','Roger, Tranquility. We copy you on the ground. We can breathe again. Thank you.');lines[lines.length-1].landed=true;
      say('COLUMBIA','Well done, Eagle.');lines[lines.length-1].landed=true;
     }
+    else if(s.status==='crashed'){
+     say('HOUSTON','The lander has crashed. Neil and Buzz have perished. Our thoughts are with their loved ones.');
+     lines[lines.length-1].sombre=true;
+    }
     else{say('EAGLE','Contact. Engine stop.');say('HOUSTON','Copy. Vertical rate at contact, '+Math.abs(s.vy).toFixed(1)+' metres per second.');}
     return lines;
    }
@@ -144,7 +148,7 @@
   pump(){
    if(this.speaking||!this.queue.length||!this.enabled||!this.context||document.hidden||this.panel.closest('[hidden]')||Scene.active!==this)return;
    const line=this.queue.shift();this.caption(line);if(line.clip&&this.archivePromise){this.playArchive(line);return;}const voice=this.chooseVoice(line.role);if(!voice||!root.SpeechSynthesisUtterance){this.el('status').textContent='No recognised male voice available. Choose an installed male voice above; captions and NASA touchdown audio remain available.';this.pump();return;}this.speaking=true;this.levels();this.burst('radio');const token=this.token;
-   const speech=new root.SpeechSynthesisUtterance(line.text),role=ROLES[line.role];speech.lang='en-US';speech.pitch=1;speech.rate=line.landed?1.02:role.rate;speech.volume=this.voiceVolume;
+   const speech=new root.SpeechSynthesisUtterance(line.text),role=ROLES[line.role];speech.lang='en-US';speech.pitch=1;speech.rate=line.sombre?1:line.landed?1.02:role.rate;speech.volume=this.voiceVolume;
    speech.voice=voice;
    let finished=false;
    const finish=()=>{if(finished||token!==this.token)return;finished=true;clearTimeout(watchdog);this.timers.delete(watchdog);this.speaking=false;this.levels();this.burst('radio');this.later(()=>this.pump(),250);};

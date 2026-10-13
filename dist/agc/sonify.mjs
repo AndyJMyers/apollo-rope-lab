@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import {wordBits} from './rope-trace.mjs';
 export function wordNote(word){
- wordBits(word);const step=Math.floor(word*15/32768),scale=[0,2,4,7,9],midi=48+12*Math.floor(step/5)+scale[step%5];
+ // Cycle through 15 pitches: every single-bit toggle changes the note.
+ wordBits(word);const step=word%15,scale=[0,2,4,7,9],midi=48+12*Math.floor(step/5)+scale[step%5];
  return {step,midi,frequency:440*Math.pow(2,(midi-69)/12),name:['C','D','E','G','A'][step%5]+(3+Math.floor(step/5))};
 }
 export function scoreWord(word,bitMs=100){

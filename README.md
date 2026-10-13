@@ -105,10 +105,12 @@ Trace sandbox edits also persist; Reset trace clears those edits without
 clearing the musical sketchbook.
 
 **Play melody** offers two interpretations. **Bit phrases** uses the existing
-15-tone sonification. **Word notes** maps the full unsigned word onto 15
-pentatonic pitches from C3 to A5 (C, D, E, G, A across three octaves). Each
+15-tone sonification. **Word notes** uses the unsigned word modulo 15 to select one of 15
+pentatonic pitches from C3 to A5 (C, D, E, G, A across three octaves). Every
+single-bit toggle changes pitch; the scale repeats every 15 word values. Each
 note lasts five times the selected bit pace. Several word values map to the
-same note; choose bit phrases to hear individual bit differences. Melody
+same note; choose bit phrases to hear individual bit differences. Word-note mode
+plays one note per saved word, rather than 15 notes within a single word. Melody
 playback has its own display state and does not overwrite the working draft.
 Looping is optional; mute, stop, navigation and document hiding cancel it.
 
@@ -121,7 +123,7 @@ Musical drafts and melody playback never modify or execute the flight rope.
 
 Sound defaults to enabled in the Flight Deck, Original AGC bench and hardware experiment. **Mute sound** and the radio/loop check remain available. Effects, radio speech and room ambience have separate volume controls; spoken comms can be disabled while retaining captions. The enabled/muted preference, volume levels, spoken-comms setting and voice choice are saved locally between runs and visits. Flight and bench volume profiles remain separate. Browsers may require a click or keypress before playback; the first interaction automatically activates sound. Reset and tab changes stop current playback without changing the saved preference. When browser storage is blocked, settings still work for the current visit.
 
-Procedural Web Audio produces a throttle-linked engine rumble, short attitude-thruster bursts, radio squelch and a quiet room noise floor. Four dramatised roles—Eagle, Houston, Columbia and the back room—respond to startup, altitude crossings, periodic telemetry, low fuel, illustrative overload and surface contact. The orbiter participates in the dialogue; orbital dynamics are not simulated. Live lines are adapted from the terse operational style of the Apollo 11 landing transcript, with no casual chatter during descent. A safe Flight Deck landing plays Neil Armstrong’s original NASA landing announcement; other lines remain synthesised. See [audio sources](dist/audio/README.md). Speech uses browser-provided English voices, with captions when speech is unavailable. Automatic selection uses recognised male voices at natural pitch; an installed male voice can also be selected explicitly. Ambiguous defaults use captions. Voice quality and voice variety depend on the device. Engine/thruster sounds are an interpretive cabin soundscape, not a physical acoustic reconstruction.
+Procedural Web Audio produces a throttle-linked engine rumble, short attitude-thruster bursts, radio squelch and a quiet room noise floor. Four dramatised roles—Eagle, Houston, Columbia and the back room—respond to startup, altitude crossings, periodic telemetry, low fuel, illustrative overload and surface contact. The orbiter participates in the dialogue; orbital dynamics are not simulated. Live lines are adapted from the terse operational style of the Apollo 11 landing transcript, with no casual chatter during descent. A safe Flight Deck landing plays Neil Armstrong’s original NASA landing announcement. A crash instead receives a sombre, fictional Houston announcement that the lander has crashed and Neil and Buzz have perished; no Eagle reply or landing recording plays. Hardware surface contact remains unclassified. Other lines remain synthesised. See [audio sources](dist/audio/README.md). Speech uses browser-provided English voices, with captions when speech is unavailable. Automatic selection uses recognised male voices at natural pitch; an installed male voice can also be selected explicitly. Ambiguous defaults use captions. Voice quality and voice variety depend on the device. Engine/thruster sounds are an interpretive cabin soundscape, not a physical acoustic reconstruction.
 
 Pause, reset, mute, leaving the Flight Deck tab, hiding the document and leaving the page stop active sound and cancel queued speech. Contact silences the engine while allowing the final radio exchange. Radio queues are bounded at accelerated simulation speeds. Procedural effects need no audio assets; the browser supplies live speech, and the NASA touchdown clip is served locally.
 

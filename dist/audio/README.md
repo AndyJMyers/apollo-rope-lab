@@ -3,6 +3,10 @@
 The live dialogue follows the concise call-and-response style of NASA's
 [Apollo 11 Lunar Surface Journal landing transcript](https://www.nasa.gov/wp-content/uploads/static/history/alsj/a11/a11.landing.html).
 Descent calls remain operational. Relief follows a successful landing.
+A Flight Deck crash has a separate, fictional Houston announcement:
+“The lander has crashed. Neil and Buzz have perished. Our thoughts are with
+their loved ones.” This is an alternate simulation outcome, not an archival
+Apollo event or quotation. No Eagle reply or touchdown recording plays.
 Columbia stands by instead of asking casual questions during the approach.
 The back-room exchange is adapted for this teaching model. Live numbers are
 the simulator's metres and metres/second, not the historical mission's feet.

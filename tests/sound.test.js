@@ -15,6 +15,7 @@ const overload=radio.update({...state,t:23,h:80,alarms:1,fuel:249},{active:true,
 assert(!radio.update({...state,t:24,h:80,alarms:2,fuel:249},{active:true}).some(x=>x.text.includes('overload')));
 const landed=radio.update({...state,t:45,status:'landed',h:0,vy:-1.2},{active:false});assert.equal(landed.length,5);assert(landed.some(x=>x.clip==='eagle-landed'));assert(landed.some(x=>x.role==='COLUMBIA'));assert.deepEqual(radio.update({...state,status:'landed'},{active:false}),[]);
 radio.reset();radio.update(state,{active:true,hardware:true});const contact=radio.update({...state,status:'contact',vy:-22},{active:false,hardware:true});assert(contact.every(x=>!x.text.includes('Safe touchdown')),'Hardware contact must not claim a safe landing');
+radio.reset();radio.update(state,{active:true});const crash=radio.update({...state,status:'crashed',h:0,vy:-20},{active:false});assert.deepEqual(crash.map(x=>x.role),['HOUSTON']);assert.equal(crash[0].text,'The lander has crashed. Neil and Buzz have perished. Our thoughts are with their loved ones.');assert(crash.every(x=>!x.clip&&!x.landed&&!x.text.includes('Engine stop')));assert.deepEqual(radio.update({...state,status:'crashed'},{active:false}),[],'Crash announcement occurs once');
 // Exercise lifecycle and the audio graph without requiring sound hardware.
 class Element{
  constructor(){this.children=[];this.value='45';this.checked=true;this.gain=null;}
