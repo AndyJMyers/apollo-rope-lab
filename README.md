@@ -2,6 +2,14 @@
 
 Hardware coupling checkpoint for Andy J Myers. A playable teaching model, an original AGC workbench and a sensor/engine experiment. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
 
+## Play online
+
+[**Open Apollo Rope Lab on GitHub Pages**](https://andyjmyers.github.io/apollo-rope-lab/)
+
+Public hosting setup is in progress; the link becomes available after Pages is enabled and the first deployment succeeds. The workflow publishes `dist/` on pushes to `main` and can also be run manually from Actions.
+
+This is an owner-maintained project. Public access does not imply a commitment to review or merge pull requests; repository changes remain under the owner's control.
+
 ## In The News
 
 ![Bugs Bunny and Marvin the Martian on the Moon beside an explosive space modulator.](docs/images/bugs-bunny-in-haredevil-hare.jpg)
