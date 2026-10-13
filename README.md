@@ -8,7 +8,7 @@ Hardware coupling checkpoint for Andy J Myers. A playable teaching model, an ori
 
 This is an **early, opt-in beta test**. You’re invited to explore the lander, original AGC bench and musical word experiments while they take shape. Expect rough edges; [report bugs or share feedback](https://github.com/AndyJMyers/apollo-rope-lab/issues). There is no sign-up requirement.
 
-Public hosting setup is in progress; the link becomes available after Pages is enabled and the first deployment succeeds. The workflow publishes `dist/` on pushes to `main` and can also be run manually from Actions.
+The public beta is hosted on GitHub Pages. The workflow publishes `dist/` on pushes to `main` and can also be run manually from Actions.
 
 This is an owner-maintained project. Public access does not imply a commitment to review or merge pull requests; repository changes remain under the owner's control.
 
@@ -30,9 +30,9 @@ The animation repeats automatically. Regenerate it with `python3 tools/render_co
 
 ## Listen to the song
 
-[**Play Hope, Hope, Hope (Burn, Baby, Burn) — Andy J Myers**](https://apollo-rope-lab.magicbell8.chatgpt.site/music.html)
+[**Play Hope, Hope, Hope (Burn, Baby, Burn) — Andy J Myers**](https://andyjmyers.github.io/apollo-rope-lab/music.html)
 
-The private listening page combines the album cover, a five-minute stereo track and the repeating core-rope animation. The web player uses a 192 kbps MP3 made from the original 48 kHz stereo WAV; the original WAV master is retained separately. Playback starts when you press play.
+The listening page combines the album cover, a five-minute stereo track and the repeating core-rope animation. The web player uses a 192 kbps MP3 made from the original 48 kHz stereo WAV; the original WAV master is retained separately. Playback starts when you press play.
 
 [**Full WAV and album experience on Substack**](https://andyjmyers.substack.com/p/hope-hope-hope)
 
@@ -139,7 +139,7 @@ Pause, reset, mute, leaving the Flight Deck tab, hiding the document and leaving
 
 ### Hardware loop
 
-[**Open the hardware experiment**](https://apollo-rope-lab.magicbell8.chatgpt.site/hardware.html).
+[**Open the hardware experiment**](https://andyjmyers.github.io/apollo-rope-lab/hardware.html).
 
 Choose **Manual / Live AGC** to boot the unchanged flight program and its V16 N21 accelerometer display. Start in freefall, increase thrust, then change tilt: genuine unprogrammed counter packets carry thrust-driven velocity impulses into PIPAX/PIPAY/PIPAZ. Gravity does not generate accelerometer pulses. Fractional pulses accumulate at 0.0585 m/s per pulse.
 
