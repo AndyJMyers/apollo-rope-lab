@@ -2,9 +2,11 @@
 
 Hardware coupling checkpoint for Andy J Myers. A playable teaching model, an original AGC workbench and a sensor/engine experiment. Static HTML/CSS/JavaScript/WebAssembly; all runtime assets are served locally by the Site.
 
-## Play online
+## Early opt-in beta test
 
 [**Open Apollo Rope Lab on GitHub Pages**](https://andyjmyers.github.io/apollo-rope-lab/)
+
+This is an **early, opt-in beta test**. You’re invited to explore the lander, original AGC bench and musical word experiments while they take shape. Expect rough edges; [report bugs or share feedback](https://github.com/AndyJMyers/apollo-rope-lab/issues). There is no sign-up requirement.
 
 Public hosting setup is in progress; the link becomes available after Pages is enabled and the first deployment succeeds. The workflow publishes `dist/` on pushes to `main` and can also be run manually from Actions.
 
